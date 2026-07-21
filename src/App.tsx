@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  AlertTriangle, Box, Check, ChevronDown, Download, Eye, FlipHorizontal2,
-  FlipVertical2, Grid3X3, LayoutTemplate, Maximize2, Minus, MoreHorizontal, Move,
-  Printer, QrCode, Redo2, Save, SlidersHorizontal,
-  Sparkles, Type, Undo2, Upload, ZoomIn, ZoomOut
-} from 'lucide-react'
+import { TriangleAlert as AlertTriangle, ArrowLeft, Box, Check, ChevronDown, Download, Eye, FlipHorizontal2, FlipVertical2, Grid3x2 as Grid3X3, LayoutTemplate, Maximize2, Minus, Monitor, MoveHorizontal as MoreHorizontal, Move, Printer, QrCode, Redo2, Save, SlidersHorizontal, Sparkles, Type, Undo2, Upload, ZoomIn, ZoomOut } from 'lucide-react'
 import './App.css'
 
 type CellMode = 'detailed' | 'compact' | 'micro'
@@ -255,12 +250,21 @@ function App() {
   }, [state])
 
   const print = () => {
-    setPreviewMode('print')
-    setTimeout(() => window.print(), 100)
+    window.print()
   }
+
+  const enterPreview = () => setPreviewMode('print')
+  const exitPreview = () => setPreviewMode('editor')
 
   return (
     <div className={`app ${previewMode === 'print' ? 'print-preview' : ''}`}>
+      {previewMode === 'print' && (
+        <div className="preview-bar no-print">
+          <button className="soft-btn" onClick={exitPreview}><ArrowLeft size={16}/> Back to editor</button>
+          <span className="preview-label"><Eye size={15}/> Print Preview</span>
+          <button className="primary-btn" onClick={print}><Printer size={16}/> Print</button>
+        </div>
+      )}
       <header className="topbar no-print">
         <div className="brand">
           <div className="brand-mark"><Grid3X3 size={20}/></div>
@@ -271,8 +275,8 @@ function App() {
           <span className="saved-pill"><Check size={12}/> Draft</span>
         </div>
         <div className="top-actions">
-          <button className="icon-btn" onClick={undo} disabled={!history.length} title="Undo"><Undo2 size={18}/></button>
-          <button className="icon-btn" onClick={redo} disabled={!future.length} title="Redo"><Redo2 size={18}/></button>
+          <button className="icon-btn" onClick={undo} disabled={!history.length} title="Undo (Ctrl+Z)"><Undo2 size={18}/></button>
+          <button className="icon-btn" onClick={redo} disabled={!future.length} title="Redo (Ctrl+Shift+Z)"><Redo2 size={18}/></button>
           <span className="divider"/>
           <button className="soft-btn" onClick={saveTemplate}><Save size={16}/> Save</button>
           <button className="soft-btn" onClick={exportTemplate}><Download size={16}/> Export</button>
@@ -314,8 +318,8 @@ function App() {
         <main className="canvas-area">
           <div className="canvas-toolbar no-print">
             <div className="segmented">
-              <button className="active"><Move size={14}/> Design</button>
-              <button onClick={() => setPreviewMode('print')}><Eye size={14}/> Preview</button>
+              <button className={previewMode === 'editor' ? 'active' : ''} onClick={exitPreview}><Move size={14}/> Design</button>
+              <button className={previewMode === 'print' ? 'active' : ''} onClick={enterPreview}><Eye size={14}/> Preview</button>
             </div>
             <div className="canvas-meta">
               <span>{state.widthMm} × {state.heightMm} mm</span>
@@ -358,6 +362,16 @@ function App() {
           {warnings.length > 0 && <div className="validation-card"><div><AlertTriangle size={16}/><strong>Validation</strong></div>{warnings.map(w => <p key={w}>{w}</p>)}</div>}
         </aside>
       </div>
+
+      <div className="mobile-overlay no-print">
+        <div className="mobile-card">
+          <Monitor size={40}/>
+          <h2>Desktop Required</h2>
+          <p>Label Studio needs a wider screen to display the editor properly. Please use a tablet in landscape or desktop browser.</p>
+          <small>Minimum width: 900px</small>
+        </div>
+      </div>
+
       {toast && <div className="toast"><Check size={16}/>{toast}</div>}
     </div>
   )
@@ -383,8 +397,11 @@ function LabelCanvas({ state, transformedSlots, resolvedMode, selectedCell, setS
           </div>
         )}
         <div className={`grid-wrap mode-${resolvedMode}`}>
-          {state.showCoordinates && <div className="corner-coordinate"/>}
-          {state.showCoordinates && transformedSlots[0]?.map((_, c) => <div className="col-coordinate" key={`c-${c}`}>{c + 1}</div>)}
+          {state.showCoordinates && (
+            <div className="col-coordinates-row" style={{ paddingLeft: 16, display: 'grid', gridTemplateColumns: `repeat(${state.columns}, 1fr)`, gap: `${state.gridGapMm * pxPerMm}px` }}>
+              {transformedSlots[0]?.map((_, c) => <div className="col-coordinate" key={`c-${c}`}>{c + 1}</div>)}
+            </div>
+          )}
           {transformedSlots.map((row, r) => (
             <div className="grid-row" key={r}>
               {state.showCoordinates && <div className="row-coordinate">{rowLabel(r)}</div>}
