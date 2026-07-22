@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { TriangleAlert as AlertTriangle, Check, ChevronDown, Download, Grid3x2 as Grid3X3, Monitor, Printer, Redo2, Save, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
+import { Lock, TriangleAlert as AlertTriangle, Check, ChevronDown, Download, Grid3x2 as Grid3X3, Monitor, Printer, Redo2, Save, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
 import './App.css'
 
 type Slot = {
@@ -9,6 +9,8 @@ type Slot = {
   info: string
   date: string
 }
+
+type LockedParam = 'cellWidth' | 'gapH' | 'paddingH'
 
 type TemplateState = {
   templateName: string
@@ -22,6 +24,7 @@ type TemplateState = {
   paddingVMm: number
   gridGapHMm: number
   gridGapVMm: number
+  cellWidthMm: number
   cellAspectRatio: number
   headerHeightMm: number
   footerHeightMm: number
@@ -30,6 +33,7 @@ type TemplateState = {
   showQr: boolean
   showCoordinates: boolean
   showGridLines: boolean
+  lockedParam: LockedParam
   zoom: number
   slots: Slot[]
 }
@@ -61,6 +65,7 @@ const initialState: TemplateState = {
   paddingVMm: 5,
   gridGapHMm: 0.5,
   gridGapVMm: 0.5,
+  cellWidthMm: 0,
   cellAspectRatio: 1.0,
   headerHeightMm: 14,
   footerHeightMm: 12,
@@ -69,6 +74,7 @@ const initialState: TemplateState = {
   showQr: true,
   showCoordinates: true,
   showGridLines: true,
+  lockedParam: 'cellWidth',
   zoom: 0.85,
   slots: initialSlots,
 }
@@ -101,8 +107,26 @@ function computeGridMetrics(state: TemplateState) {
   const coordAllowanceX = state.showCoordinates ? 5 : 0
   const coordAllowanceY = state.showCoordinates ? 4 : 0
 
-  const availableWidth = A4_WIDTH_MM - state.paddingHMm * 2 - coordAllowanceX - state.gridGapHMm * (state.columns - 1)
-  const cellWidth = availableWidth / state.columns
+  let cellWidth: number
+  let gapH: number
+  let paddingH: number
+
+  if (state.lockedParam === 'cellWidth') {
+    gapH = state.gridGapHMm
+    paddingH = state.paddingHMm
+    const availW = A4_WIDTH_MM - paddingH * 2 - coordAllowanceX - gapH * (state.columns - 1)
+    cellWidth = availW / state.columns
+  } else if (state.lockedParam === 'gapH') {
+    cellWidth = state.cellWidthMm
+    paddingH = state.paddingHMm
+    gapH = state.columns > 1
+      ? (A4_WIDTH_MM - paddingH * 2 - coordAllowanceX - cellWidth * state.columns) / (state.columns - 1)
+      : 0
+  } else {
+    cellWidth = state.cellWidthMm
+    gapH = state.gridGapHMm
+    paddingH = (A4_WIDTH_MM - coordAllowanceX - cellWidth * state.columns - gapH * (state.columns - 1)) / 2
+  }
 
   const availableHeight = A4_HEIGHT_MM - state.paddingVMm * 2
     - (state.showHeader ? state.headerHeightMm : 0)
@@ -119,7 +143,7 @@ function computeGridMetrics(state: TemplateState) {
 
   const minRatio = cellWidth / maxCellHeight
 
-  return { cellWidth, cellHeight, maxCellHeight, clamped, effectiveRatio, minRatio, availableWidth, availableHeight }
+  return { cellWidth, cellHeight, maxCellHeight, clamped, effectiveRatio, minRatio, effectiveGapH: gapH, effectivePaddingH: paddingH }
 }
 
 function App() {
@@ -218,6 +242,63 @@ function App() {
     update({ cellAspectRatio: Math.round(clamped * 100) / 100 })
   }
 
+  const handleCellWidthChange = (v: number) => {
+    const coordAllowanceX = state.showCoordinates ? 5 : 0
+    if (state.lockedParam === 'gapH') {
+      const newGap = state.columns > 1
+        ? (A4_WIDTH_MM - state.paddingHMm * 2 - coordAllowanceX - v * state.columns) / (state.columns - 1)
+        : 0
+      if (newGap < 0) return
+    } else if (state.lockedParam === 'paddingH') {
+      const newPad = (A4_WIDTH_MM - coordAllowanceX - v * state.columns - state.gridGapHMm * (state.columns - 1)) / 2
+      if (newPad < 0) return
+    }
+    const oldHeight = metrics.cellWidth / state.cellAspectRatio
+    const newRatio = v / oldHeight
+    update({ cellWidthMm: v, cellAspectRatio: Math.round(Math.max(metrics.minRatio, newRatio) * 100) / 100 })
+  }
+
+  const handleCellHeightChange = (v: number) => {
+    if (v <= 0) return
+    const newRatio = metrics.cellWidth / v
+    update({ cellAspectRatio: Math.round(Math.max(metrics.minRatio, newRatio) * 100) / 100 })
+  }
+
+  const handleGapHChange = (v: number) => {
+    const coordAllowanceX = state.showCoordinates ? 5 : 0
+    if (state.lockedParam === 'cellWidth') {
+      const newCellW = (A4_WIDTH_MM - state.paddingHMm * 2 - coordAllowanceX - v * (state.columns - 1)) / state.columns
+      if (newCellW < 0) return
+    } else if (state.lockedParam === 'paddingH') {
+      const newPad = (A4_WIDTH_MM - coordAllowanceX - state.cellWidthMm * state.columns - v * (state.columns - 1)) / 2
+      if (newPad < 0) return
+    }
+    update({ gridGapHMm: v })
+  }
+
+  const handlePadHChange = (v: number) => {
+    const coordAllowanceX = state.showCoordinates ? 5 : 0
+    if (state.lockedParam === 'cellWidth') {
+      const newCellW = (A4_WIDTH_MM - v * 2 - coordAllowanceX - state.gridGapHMm * (state.columns - 1)) / state.columns
+      if (newCellW < 0) return
+    } else if (state.lockedParam === 'gapH') {
+      const newGap = state.columns > 1
+        ? (A4_WIDTH_MM - v * 2 - coordAllowanceX - state.cellWidthMm * state.columns) / (state.columns - 1)
+        : 0
+      if (newGap < 0) return
+    }
+    update({ paddingHMm: v })
+  }
+
+  const handleLockChange = (param: LockedParam) => {
+    if (param === state.lockedParam) return
+    if (param === 'cellWidth') {
+      update({ lockedParam: 'cellWidth' })
+    } else {
+      update({ lockedParam: param, cellWidthMm: metrics.cellWidth })
+    }
+  }
+
   return (
     <div className="app">
       <header className="topbar no-print">
@@ -274,21 +355,24 @@ function App() {
         <aside className="right-panel no-print">
           <div className="right-heading"><div><Grid3X3 size={17}/><strong>Settings</strong></div></div>
           <PropertySection title="Structure">
-            <div className="three-col">
+            <div className="two-col">
               <NumberField label="Rows" value={state.rows} min={1} max={20} onChange={rows => update({ rows })}/>
               <NumberField label="Columns" value={state.columns} min={1} max={20} onChange={columns => update({ columns })}/>
-              <NumberField label="Ratio" value={state.cellAspectRatio} min={Math.round(metrics.minRatio * 100) / 100} max={5} step={0.05} onChange={handleAspectRatioChange}/>
             </div>
+            <div className="two-col">
+              <NumberField label="Cell W" value={Number(metrics.cellWidth.toFixed(2))} min={1} max={80} step={0.1} suffix="mm" locked={state.lockedParam === 'cellWidth'} onLockClick={() => handleLockChange('cellWidth')} onChange={handleCellWidthChange}/>
+              <NumberField label="Cell H" value={Number(metrics.cellHeight.toFixed(2))} min={1} max={80} step={0.1} suffix="mm" onChange={handleCellHeightChange}/>
+            </div>
+            <NumberField label="Ratio" value={state.cellAspectRatio} min={Math.round(metrics.minRatio * 100) / 100} max={5} step={0.05} onChange={handleAspectRatioChange}/>
             {metrics.clamped && <div className="clamp-notice">Ratio limited to fit page height</div>}
             <div className="two-col">
-              <NumberField label="Gap H" value={state.gridGapHMm} min={0} max={4} step={0.05} suffix="mm" onChange={gridGapHMm => update({ gridGapHMm })}/>
+              <NumberField label="Gap H" value={Number(metrics.effectiveGapH.toFixed(2))} min={0} max={10} step={0.05} suffix="mm" locked={state.lockedParam === 'gapH'} onLockClick={() => handleLockChange('gapH')} onChange={handleGapHChange}/>
               <NumberField label="Gap V" value={state.gridGapVMm} min={0} max={4} step={0.05} suffix="mm" onChange={gridGapVMm => update({ gridGapVMm })}/>
             </div>
             <div className="two-col">
-              <NumberField label="Pad H" value={state.paddingHMm} min={0} max={20} step={0.5} suffix="mm" onChange={paddingHMm => update({ paddingHMm })}/>
+              <NumberField label="Pad H" value={Number(metrics.effectivePaddingH.toFixed(2))} min={0} max={30} step={0.5} suffix="mm" locked={state.lockedParam === 'paddingH'} onLockClick={() => handleLockChange('paddingH')} onChange={handlePadHChange}/>
               <NumberField label="Pad V" value={state.paddingVMm} min={0} max={20} step={0.5} suffix="mm" onChange={paddingVMm => update({ paddingVMm })}/>
             </div>
-            <div className="metric-strip"><span>Cell size</span><strong>{metrics.cellWidth.toFixed(1)} × {metrics.cellHeight.toFixed(1)} mm</strong></div>
             <Toggle label="Grid lines" checked={state.showGridLines} onChange={showGridLines => update({ showGridLines })}/>
             <Toggle label="Coordinates" checked={state.showCoordinates} onChange={showCoordinates => update({ showCoordinates })}/>
           </PropertySection>
@@ -343,12 +427,12 @@ function LabelCanvas({ state, slotsMatrix, metrics, selectedCell, setSelectedCel
   const canvasH = A4_HEIGHT_MM * pxPerMm
   const cellWpx = metrics.cellWidth * pxPerMm
   const cellHpx = metrics.cellHeight * pxPerMm
-  const gapHpx = state.gridGapHMm * pxPerMm
+  const gapHpx = metrics.effectiveGapH * pxPerMm
   const gapVpx = state.gridGapVMm * pxPerMm
 
   return (
     <div className="label-shadow" style={{ width: canvasW, height: canvasH }}>
-      <div className="label-canvas" style={{ padding: `${state.paddingVMm * pxPerMm}px ${state.paddingHMm * pxPerMm}px` }}>
+      <div className="label-canvas" style={{ padding: `${state.paddingVMm * pxPerMm}px ${metrics.effectivePaddingH * pxPerMm}px` }}>
         {state.showHeader && (
           <div className="label-header" style={{ height: state.headerHeightMm * pxPerMm }}>
             <div className="header-main"><strong>{state.boxName}</strong><span>{state.location}</span></div>
@@ -406,8 +490,8 @@ function PropertySection({ title, children, open = true }: { title: string; chil
   return <section className="property-section"><div className="property-title"><span>{title}</span><ChevronDown size={15} style={{ transform: open ? '' : 'rotate(-90deg)' }}/></div>{open && <div className="property-content">{children}</div>}</section>
 }
 
-function NumberField({ label, value, onChange, min = 0, max = 999, step = 1, suffix }: { label: string; value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number; suffix?: string }) {
-  return <label className="field"><span>{label}</span><div className="number-input"><input type="number" value={value} min={min} max={max} step={step} onChange={e => onChange(Number(e.target.value))}/>{suffix && <em>{suffix}</em>}</div></label>
+function NumberField({ label, value, onChange, min = 0, max = 999, step = 1, suffix, disabled, locked, onLockClick }: { label: string; value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number; suffix?: string; disabled?: boolean; locked?: boolean; onLockClick?: () => void }) {
+  return <label className={`field${locked ? ' field-locked' : ''}`}><span>{label}{onLockClick !== undefined && <button type="button" className={`lock-btn${locked ? ' lock-active' : ''}`} onClick={e => { e.preventDefault(); onLockClick() }}><Lock size={10}/></button>}</span><div className="number-input"><input type="number" value={value} min={min} max={max} step={step} disabled={disabled || locked} onChange={e => onChange(Number(e.target.value))}/>{suffix && <em>{suffix}</em>}</div></label>
 }
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
