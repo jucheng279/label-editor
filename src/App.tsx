@@ -18,10 +18,9 @@ type TemplateState = {
   owner: string
   rows: number
   columns: number
-  widthMm: number
-  heightMm: number
   paddingMm: number
   gridGapMm: number
+  cellAspectRatio: number
   headerHeightMm: number
   footerHeightMm: number
   showHeader: boolean
@@ -32,6 +31,9 @@ type TemplateState = {
   zoom: number
   slots: Slot[]
 }
+
+const A4_WIDTH_MM = 210
+const A4_HEIGHT_MM = 297
 
 const initialSlots: Slot[] = [
   { row: 0, col: 0, name: 'HCT116', info: 'P12 Control', date: '2026-07-20' },
@@ -53,18 +55,17 @@ const initialState: TemplateState = {
   owner: 'Cancer Biology Lab',
   rows: 6,
   columns: 8,
-  widthMm: 100,
-  heightMm: 75,
-  paddingMm: 2,
-  gridGapMm: 0.35,
-  headerHeightMm: 12,
-  footerHeightMm: 10,
+  paddingMm: 5,
+  gridGapMm: 0.5,
+  cellAspectRatio: 1.0,
+  headerHeightMm: 14,
+  footerHeightMm: 12,
   showHeader: true,
   showFooter: true,
   showQr: true,
   showCoordinates: true,
   showGridLines: true,
-  zoom: 1.05,
+  zoom: 0.85,
   slots: initialSlots,
 }
 
@@ -90,6 +91,34 @@ function makeQrPattern(seed: string) {
     return ((hash >> ((i + x * y) % 24)) & 1) === 1
   })
   return cells
+}
+
+function computeGridMetrics(state: TemplateState) {
+  const coordAllowanceX = state.showCoordinates ? 5 : 0
+  const coordAllowanceY = state.showCoordinates ? 4 : 0
+
+  const availableWidth = A4_WIDTH_MM - state.paddingMm * 2 - coordAllowanceX - state.gridGapMm * (state.columns - 1)
+  const cellWidth = availableWidth / state.columns
+
+  const availableHeight = A4_HEIGHT_MM - state.paddingMm * 2
+    - (state.showHeader ? state.headerHeightMm : 0)
+    - (state.showFooter ? state.footerHeightMm : 0)
+    - coordAllowanceY
+    - state.gridGapMm * (state.rows - 1)
+  const maxCellHeight = availableHeight / state.rows
+
+  // Desired height from aspect ratio (ratio = width / height)
+  const desiredCellHeight = cellWidth / state.cellAspectRatio
+
+  // Clamp: if desired height exceeds max, use max
+  const clamped = desiredCellHeight > maxCellHeight
+  const cellHeight = clamped ? maxCellHeight : desiredCellHeight
+  const effectiveRatio = cellWidth / cellHeight
+
+  // Minimum ratio the user can set (tallest cells that fit)
+  const minRatio = cellWidth / maxCellHeight
+
+  return { cellWidth, cellHeight, maxCellHeight, clamped, effectiveRatio, minRatio, availableWidth, availableHeight }
 }
 
 function App() {
@@ -143,13 +172,7 @@ function App() {
     return () => window.removeEventListener('keydown', handler)
   })
 
-  const cellWidthMm = useMemo(() => {
-    const coordinateAllowance = state.showCoordinates ? 4 : 0
-    return (state.widthMm - state.paddingMm * 2 - coordinateAllowance - state.gridGapMm * (state.columns - 1)) / state.columns
-  }, [state])
-
-  const gridAvailableHeight = state.heightMm - state.paddingMm * 2 - (state.showHeader ? state.headerHeightMm : 0) - (state.showFooter ? state.footerHeightMm : 0) - (state.showCoordinates ? 4 : 0)
-  const cellHeightMm = (gridAvailableHeight - state.gridGapMm * (state.rows - 1)) / state.rows
+  const metrics = useMemo(() => computeGridMetrics(state), [state])
 
   const slotsMatrix = useMemo(() => {
     return Array.from({ length: state.rows }, (_, r) =>
@@ -158,11 +181,11 @@ function App() {
 
   const warnings = useMemo(() => {
     const list: string[] = []
-    if (cellWidthMm < 4 || cellHeightMm < 3) list.push('Cells are too small for readable text.')
+    if (metrics.cellWidth < 4 || metrics.cellHeight < 3) list.push('Cells are too small for readable text.')
     if (state.showQr && state.footerHeightMm < 8) list.push('QR region may be too small for reliable scanning.')
     if (state.rows * state.columns > 144) list.push('Large grids may render slowly when printing.')
     return list
-  }, [cellWidthMm, cellHeightMm, state])
+  }, [metrics, state])
 
   const saveTemplate = () => {
     localStorage.setItem('lab-label-template', JSON.stringify(state))
@@ -188,12 +211,14 @@ function App() {
     update({ slots })
   }
 
-  const print = () => {
-    window.print()
-  }
-
+  const print = () => { window.print() }
   const enterPreview = () => setPreviewMode('print')
   const exitPreview = () => setPreviewMode('editor')
+
+  const handleAspectRatioChange = (v: number) => {
+    const clamped = Math.max(metrics.minRatio, v)
+    update({ cellAspectRatio: Math.round(clamped * 100) / 100 })
+  }
 
   return (
     <div className={`app ${previewMode === 'print' ? 'print-preview' : ''}`}>
@@ -231,25 +256,24 @@ function App() {
               <button className={previewMode === 'print' ? 'active' : ''} onClick={enterPreview}><Eye size={14}/> Preview</button>
             </div>
             <div className="canvas-meta">
-              <span>{state.widthMm} × {state.heightMm} mm</span>
+              <span>A4 · {A4_WIDTH_MM} × {A4_HEIGHT_MM} mm</span>
             </div>
             <div className="zoom-control">
-              <button onClick={() => update({ zoom: Math.max(.6, state.zoom - .1) })}><ZoomOut size={16}/></button>
+              <button onClick={() => update({ zoom: Math.max(.4, state.zoom - .1) })}><ZoomOut size={16}/></button>
               <span>{Math.round(state.zoom * 100)}%</span>
-              <button onClick={() => update({ zoom: Math.min(1.8, state.zoom + .1) })}><ZoomIn size={16}/></button>
+              <button onClick={() => update({ zoom: Math.min(1.5, state.zoom + .1) })}><ZoomIn size={16}/></button>
             </div>
           </div>
 
           <div className="canvas-stage">
-            <div className="ruler ruler-x"/>
-            <div className="ruler ruler-y"/>
             <LabelCanvas
               state={state}
               slotsMatrix={slotsMatrix}
+              metrics={metrics}
               selectedCell={selectedCell}
               setSelectedCell={setSelectedCell}
             />
-            <div className="stage-hint no-print"><Maximize2 size={14}/> Physical size preview · Print at 100%</div>
+            <div className="stage-hint no-print"><Maximize2 size={14}/> A4 paper preview · Print at 100%</div>
           </div>
 
           <div className="statusbar no-print">
@@ -263,15 +287,17 @@ function App() {
         <aside className="right-panel no-print">
           <div className="right-heading"><div><Grid3X3 size={17}/><strong>Settings</strong></div></div>
           <PropertySection title="Structure">
-            <div className="two-col"><NumberField label="Rows" value={state.rows} min={1} max={26} onChange={rows => update({ rows })}/><NumberField label="Columns" value={state.columns} min={1} max={24} onChange={columns => update({ columns })}/></div>
+            <div className="two-col">
+              <NumberField label="Rows" value={state.rows} min={1} max={26} onChange={rows => update({ rows })}/>
+              <NumberField label="Columns" value={state.columns} min={1} max={24} onChange={columns => update({ columns })}/>
+            </div>
+            <NumberField label="Cell aspect ratio (W:H)" value={state.cellAspectRatio} min={Math.round(metrics.minRatio * 100) / 100} max={5} step={0.05} onChange={handleAspectRatioChange}/>
+            {metrics.clamped && <div className="clamp-notice">Ratio limited to fit page height</div>}
             <NumberField label="Cell gap" value={state.gridGapMm} min={0} max={4} step={0.05} suffix="mm" onChange={gridGapMm => update({ gridGapMm })}/>
-            <div className="metric-strip"><span>Calculated cell</span><strong>{cellWidthMm.toFixed(1)} × {cellHeightMm.toFixed(1)} mm</strong></div>
+            <NumberField label="Padding" value={state.paddingMm} min={0} max={20} step={0.5} suffix="mm" onChange={paddingMm => update({ paddingMm })}/>
+            <div className="metric-strip"><span>Cell size</span><strong>{metrics.cellWidth.toFixed(1)} × {metrics.cellHeight.toFixed(1)} mm</strong></div>
             <Toggle label="Grid lines" checked={state.showGridLines} onChange={showGridLines => update({ showGridLines })}/>
             <Toggle label="Coordinates" checked={state.showCoordinates} onChange={showCoordinates => update({ showCoordinates })}/>
-          </PropertySection>
-          <PropertySection title="Label size">
-            <div className="two-col"><NumberField label="Width" value={state.widthMm} min={25} max={210} suffix="mm" onChange={widthMm => update({ widthMm })}/><NumberField label="Height" value={state.heightMm} min={15} max={297} suffix="mm" onChange={heightMm => update({ heightMm })}/></div>
-            <NumberField label="Safe padding" value={state.paddingMm} min={0} max={10} step={0.5} suffix="mm" onChange={paddingMm => update({ paddingMm })}/>
           </PropertySection>
           <PropertySection title="Regions">
             <Toggle label="Header" checked={state.showHeader} onChange={showHeader => update({ showHeader })}/>
@@ -305,16 +331,23 @@ function App() {
   )
 }
 
-function LabelCanvas({ state, slotsMatrix, selectedCell, setSelectedCell }: {
+function LabelCanvas({ state, slotsMatrix, metrics, selectedCell, setSelectedCell }: {
   state: TemplateState
   slotsMatrix: (Slot | undefined)[][]
+  metrics: ReturnType<typeof computeGridMetrics>
   selectedCell: { row: number; col: number } | null
   setSelectedCell: (v: { row: number; col: number } | null) => void
 }) {
   const qr = makeQrPattern(state.boxId)
-  const pxPerMm = 7.2 * state.zoom
+  const pxPerMm = 3.78 * state.zoom
+  const canvasW = A4_WIDTH_MM * pxPerMm
+  const canvasH = A4_HEIGHT_MM * pxPerMm
+  const cellWpx = metrics.cellWidth * pxPerMm
+  const cellHpx = metrics.cellHeight * pxPerMm
+  const gapPx = state.gridGapMm * pxPerMm
+
   return (
-    <div className="label-shadow" style={{ width: state.widthMm * pxPerMm, height: state.heightMm * pxPerMm, '--print-width': `${state.widthMm}mm`, '--print-height': `${state.heightMm}mm` } as React.CSSProperties}>
+    <div className="label-shadow" style={{ width: canvasW, height: canvasH }}>
       <div className="label-canvas" style={{ padding: state.paddingMm * pxPerMm }}>
         {state.showHeader && (
           <div className="label-header" style={{ height: state.headerHeightMm * pxPerMm }}>
@@ -324,14 +357,14 @@ function LabelCanvas({ state, slotsMatrix, selectedCell, setSelectedCell }: {
         )}
         <div className="grid-wrap">
           {state.showCoordinates && (
-            <div className="col-coordinates-row" style={{ paddingLeft: 16, display: 'grid', gridTemplateColumns: `repeat(${state.columns}, 1fr)`, gap: `${state.gridGapMm * pxPerMm}px` }}>
-              {slotsMatrix[0]?.map((_, c) => <div className="col-coordinate" key={`c-${c}`}>{c + 1}</div>)}
+            <div className="col-coordinates-row" style={{ paddingLeft: 20, display: 'grid', gridTemplateColumns: `repeat(${state.columns}, ${cellWpx}px)`, gap: `${gapPx}px` }}>
+              {Array.from({ length: state.columns }, (_, c) => <div className="col-coordinate" key={c}>{c + 1}</div>)}
             </div>
           )}
           {slotsMatrix.map((row, r) => (
-            <div className="grid-row" key={r}>
+            <div className="grid-row" key={r} style={{ height: cellHpx, gap: `${gapPx}px` }}>
               {state.showCoordinates && <div className="row-coordinate">{rowLabel(r)}</div>}
-              <div className="cells-row" style={{ gridTemplateColumns: `repeat(${state.columns}, 1fr)`, gap: `${state.gridGapMm * pxPerMm}px` }}>
+              <div className="cells-row" style={{ gridTemplateColumns: `repeat(${state.columns}, ${cellWpx}px)`, gridTemplateRows: `${cellHpx}px`, gap: `${gapPx}px` }}>
                 {row.map((slot, c) => {
                   const coordinate = `${rowLabel(r)}${c + 1}`
                   const selected = selectedCell?.row === r && selectedCell?.col === c
@@ -339,6 +372,7 @@ function LabelCanvas({ state, slotsMatrix, selectedCell, setSelectedCell }: {
                     <button
                       key={coordinate}
                       className={`label-cell ${slot ? 'occupied' : 'empty'} ${selected ? 'cell-selected' : ''} ${state.showGridLines ? '' : 'no-lines'}`}
+                      style={{ width: cellWpx, height: cellHpx }}
                       onClick={() => setSelectedCell({ row: r, col: c })}
                     >
                       {slot ? (
