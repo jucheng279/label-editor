@@ -292,11 +292,12 @@ function App() {
 
   const handleLockChange = (param: LockedParam) => {
     if (param === state.lockedParam) return
-    if (param === 'cellWidth') {
-      update({ lockedParam: 'cellWidth' })
-    } else {
-      update({ lockedParam: param, cellWidthMm: metrics.cellWidth })
-    }
+    update({
+      lockedParam: param,
+      cellWidthMm: metrics.cellWidth,
+      gridGapHMm: metrics.effectiveGapH,
+      paddingHMm: metrics.effectivePaddingH,
+    })
   }
 
   return (
@@ -362,14 +363,14 @@ function App() {
             </div>
             {metrics.clamped && <div className="clamp-notice">Ratio limited to fit page height</div>}
             <div className="three-col">
-              <NumberField label="Cell W" value={Number(metrics.cellWidth.toFixed(2))} min={1} max={80} step={0.1} suffix="mm" locked={state.lockedParam === 'cellWidth'} onLockClick={() => handleLockChange('cellWidth')} onChange={handleCellWidthChange}/>
-              <NumberField label="Gap H" value={Number(metrics.effectiveGapH.toFixed(2))} min={0} max={10} step={0.05} suffix="mm" locked={state.lockedParam === 'gapH'} onLockClick={() => handleLockChange('gapH')} onChange={handleGapHChange}/>
-              <NumberField label="Pad H" value={Number(metrics.effectivePaddingH.toFixed(2))} min={0} max={30} step={0.5} suffix="mm" locked={state.lockedParam === 'paddingH'} onLockClick={() => handleLockChange('paddingH')} onChange={handlePadHChange}/>
+              <NumberField label="Cell W" value={Number(metrics.cellWidth.toFixed(2))} min={1} max={80} step={0.1} locked={state.lockedParam === 'cellWidth'} onLockClick={() => handleLockChange('cellWidth')} onChange={handleCellWidthChange}/>
+              <NumberField label="Gap H" value={Number(metrics.effectiveGapH.toFixed(2))} min={0} max={10} step={0.05} locked={state.lockedParam === 'gapH'} onLockClick={() => handleLockChange('gapH')} onChange={handleGapHChange}/>
+              <NumberField label="Pad H" value={Number(metrics.effectivePaddingH.toFixed(2))} min={0} max={30} step={0.5} locked={state.lockedParam === 'paddingH'} onLockClick={() => handleLockChange('paddingH')} onChange={handlePadHChange}/>
             </div>
             <div className="three-col">
-              <NumberField label="Cell H" value={Number(metrics.cellHeight.toFixed(2))} min={1} max={80} step={0.1} suffix="mm" onChange={handleCellHeightChange}/>
-              <NumberField label="Gap V" value={state.gridGapVMm} min={0} max={4} step={0.05} suffix="mm" onChange={gridGapVMm => update({ gridGapVMm })}/>
-              <NumberField label="Pad V" value={state.paddingVMm} min={0} max={20} step={0.5} suffix="mm" onChange={paddingVMm => update({ paddingVMm })}/>
+              <NumberField label="Cell H" value={Number(metrics.cellHeight.toFixed(2))} min={1} max={80} step={0.1} onChange={handleCellHeightChange}/>
+              <NumberField label="Gap V" value={state.gridGapVMm} min={0} max={4} step={0.05} onChange={gridGapVMm => update({ gridGapVMm })}/>
+              <NumberField label="Pad V" value={state.paddingVMm} min={0} max={20} step={0.5} onChange={paddingVMm => update({ paddingVMm })}/>
             </div>
             <Toggle label="Grid lines" checked={state.showGridLines} onChange={showGridLines => update({ showGridLines })}/>
             <Toggle label="Coordinates" checked={state.showCoordinates} onChange={showCoordinates => update({ showCoordinates })}/>
