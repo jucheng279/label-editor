@@ -18,8 +18,10 @@ type TemplateState = {
   owner: string
   rows: number
   columns: number
-  paddingMm: number
-  gridGapMm: number
+  paddingHMm: number
+  paddingVMm: number
+  gridGapHMm: number
+  gridGapVMm: number
   cellAspectRatio: number
   headerHeightMm: number
   footerHeightMm: number
@@ -55,8 +57,10 @@ const initialState: TemplateState = {
   owner: 'Cancer Biology Lab',
   rows: 6,
   columns: 8,
-  paddingMm: 5,
-  gridGapMm: 0.5,
+  paddingHMm: 5,
+  paddingVMm: 5,
+  gridGapHMm: 0.5,
+  gridGapVMm: 0.5,
   cellAspectRatio: 1.0,
   headerHeightMm: 14,
   footerHeightMm: 12,
@@ -97,25 +101,22 @@ function computeGridMetrics(state: TemplateState) {
   const coordAllowanceX = state.showCoordinates ? 5 : 0
   const coordAllowanceY = state.showCoordinates ? 4 : 0
 
-  const availableWidth = A4_WIDTH_MM - state.paddingMm * 2 - coordAllowanceX - state.gridGapMm * (state.columns - 1)
+  const availableWidth = A4_WIDTH_MM - state.paddingHMm * 2 - coordAllowanceX - state.gridGapHMm * (state.columns - 1)
   const cellWidth = availableWidth / state.columns
 
-  const availableHeight = A4_HEIGHT_MM - state.paddingMm * 2
+  const availableHeight = A4_HEIGHT_MM - state.paddingVMm * 2
     - (state.showHeader ? state.headerHeightMm : 0)
     - (state.showFooter ? state.footerHeightMm : 0)
     - coordAllowanceY
-    - state.gridGapMm * (state.rows - 1)
+    - state.gridGapVMm * (state.rows - 1)
   const maxCellHeight = availableHeight / state.rows
 
-  // Desired height from aspect ratio (ratio = width / height)
   const desiredCellHeight = cellWidth / state.cellAspectRatio
 
-  // Clamp: if desired height exceeds max, use max
   const clamped = desiredCellHeight > maxCellHeight
   const cellHeight = clamped ? maxCellHeight : desiredCellHeight
   const effectiveRatio = cellWidth / cellHeight
 
-  // Minimum ratio the user can set (tallest cells that fit)
   const minRatio = cellWidth / maxCellHeight
 
   return { cellWidth, cellHeight, maxCellHeight, clamped, effectiveRatio, minRatio, availableWidth, availableHeight }
@@ -287,23 +288,35 @@ function App() {
         <aside className="right-panel no-print">
           <div className="right-heading"><div><Grid3X3 size={17}/><strong>Settings</strong></div></div>
           <PropertySection title="Structure">
-            <div className="two-col">
+            <div className="three-col">
               <NumberField label="Rows" value={state.rows} min={1} max={26} onChange={rows => update({ rows })}/>
               <NumberField label="Columns" value={state.columns} min={1} max={24} onChange={columns => update({ columns })}/>
+              <NumberField label="Ratio" value={state.cellAspectRatio} min={Math.round(metrics.minRatio * 100) / 100} max={5} step={0.05} onChange={handleAspectRatioChange}/>
             </div>
-            <NumberField label="Cell aspect ratio (W:H)" value={state.cellAspectRatio} min={Math.round(metrics.minRatio * 100) / 100} max={5} step={0.05} onChange={handleAspectRatioChange}/>
             {metrics.clamped && <div className="clamp-notice">Ratio limited to fit page height</div>}
-            <NumberField label="Cell gap" value={state.gridGapMm} min={0} max={4} step={0.05} suffix="mm" onChange={gridGapMm => update({ gridGapMm })}/>
-            <NumberField label="Padding" value={state.paddingMm} min={0} max={20} step={0.5} suffix="mm" onChange={paddingMm => update({ paddingMm })}/>
+            <div className="two-col">
+              <NumberField label="Gap H" value={state.gridGapHMm} min={0} max={4} step={0.05} suffix="mm" onChange={gridGapHMm => update({ gridGapHMm })}/>
+              <NumberField label="Gap V" value={state.gridGapVMm} min={0} max={4} step={0.05} suffix="mm" onChange={gridGapVMm => update({ gridGapVMm })}/>
+            </div>
+            <div className="two-col">
+              <NumberField label="Pad H" value={state.paddingHMm} min={0} max={20} step={0.5} suffix="mm" onChange={paddingHMm => update({ paddingHMm })}/>
+              <NumberField label="Pad V" value={state.paddingVMm} min={0} max={20} step={0.5} suffix="mm" onChange={paddingVMm => update({ paddingVMm })}/>
+            </div>
             <div className="metric-strip"><span>Cell size</span><strong>{metrics.cellWidth.toFixed(1)} × {metrics.cellHeight.toFixed(1)} mm</strong></div>
             <Toggle label="Grid lines" checked={state.showGridLines} onChange={showGridLines => update({ showGridLines })}/>
             <Toggle label="Coordinates" checked={state.showCoordinates} onChange={showCoordinates => update({ showCoordinates })}/>
           </PropertySection>
           <PropertySection title="Regions">
-            <Toggle label="Header" checked={state.showHeader} onChange={showHeader => update({ showHeader })}/>
-            {state.showHeader && <NumberField label="Header height" value={state.headerHeightMm} min={5} max={30} suffix="mm" onChange={headerHeightMm => update({ headerHeightMm })}/>}
-            <Toggle label="Footer" checked={state.showFooter} onChange={showFooter => update({ showFooter })}/>
-            {state.showFooter && <NumberField label="Footer height" value={state.footerHeightMm} min={5} max={30} suffix="mm" onChange={footerHeightMm => update({ footerHeightMm })}/>}
+            <div className="region-pair">
+              <div className="region-col">
+                <Toggle label="Header" checked={state.showHeader} onChange={showHeader => update({ showHeader })}/>
+                {state.showHeader && <NumberField label="Height" value={state.headerHeightMm} min={5} max={30} suffix="mm" onChange={headerHeightMm => update({ headerHeightMm })}/>}
+              </div>
+              <div className="region-col">
+                <Toggle label="Footer" checked={state.showFooter} onChange={showFooter => update({ showFooter })}/>
+                {state.showFooter && <NumberField label="Height" value={state.footerHeightMm} min={5} max={30} suffix="mm" onChange={footerHeightMm => update({ footerHeightMm })}/>}
+              </div>
+            </div>
             <Toggle label="QR code" checked={state.showQr} onChange={showQr => update({ showQr })}/>
           </PropertySection>
           <PropertySection title="Box data">
@@ -344,27 +357,28 @@ function LabelCanvas({ state, slotsMatrix, metrics, selectedCell, setSelectedCel
   const canvasH = A4_HEIGHT_MM * pxPerMm
   const cellWpx = metrics.cellWidth * pxPerMm
   const cellHpx = metrics.cellHeight * pxPerMm
-  const gapPx = state.gridGapMm * pxPerMm
+  const gapHpx = state.gridGapHMm * pxPerMm
+  const gapVpx = state.gridGapVMm * pxPerMm
 
   return (
     <div className="label-shadow" style={{ width: canvasW, height: canvasH }}>
-      <div className="label-canvas" style={{ padding: state.paddingMm * pxPerMm }}>
+      <div className="label-canvas" style={{ padding: `${state.paddingVMm * pxPerMm}px ${state.paddingHMm * pxPerMm}px` }}>
         {state.showHeader && (
           <div className="label-header" style={{ height: state.headerHeightMm * pxPerMm }}>
             <div className="header-main"><strong>{state.boxName}</strong><span>{state.location}</span></div>
             <div className="header-id"><span>{state.boxId}</span><small>{state.rows} × {state.columns} box</small></div>
           </div>
         )}
-        <div className="grid-wrap">
+        <div className="grid-wrap" style={{ gap: `${gapVpx}px` }}>
           {state.showCoordinates && (
-            <div className="col-coordinates-row" style={{ paddingLeft: 20, display: 'grid', gridTemplateColumns: `repeat(${state.columns}, ${cellWpx}px)`, gap: `${gapPx}px` }}>
+            <div className="col-coordinates-row" style={{ paddingLeft: 20, display: 'grid', gridTemplateColumns: `repeat(${state.columns}, ${cellWpx}px)`, gap: `0 ${gapHpx}px` }}>
               {Array.from({ length: state.columns }, (_, c) => <div className="col-coordinate" key={c}>{c + 1}</div>)}
             </div>
           )}
           {slotsMatrix.map((row, r) => (
-            <div className="grid-row" key={r} style={{ height: cellHpx, gap: `${gapPx}px` }}>
+            <div className="grid-row" key={r} style={{ height: cellHpx }}>
               {state.showCoordinates && <div className="row-coordinate">{rowLabel(r)}</div>}
-              <div className="cells-row" style={{ gridTemplateColumns: `repeat(${state.columns}, ${cellWpx}px)`, gridTemplateRows: `${cellHpx}px`, gap: `${gapPx}px` }}>
+              <div className="cells-row" style={{ gridTemplateColumns: `repeat(${state.columns}, ${cellWpx}px)`, gridTemplateRows: `${cellHpx}px`, gap: `0 ${gapHpx}px` }}>
                 {row.map((slot, c) => {
                   const coordinate = `${rowLabel(r)}${c + 1}`
                   const selected = selectedCell?.row === r && selectedCell?.col === c
