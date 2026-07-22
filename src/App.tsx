@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { TriangleAlert as AlertTriangle, ArrowLeft, Check, ChevronDown, Download, Eye, Grid3x2 as Grid3X3, Maximize2, Monitor, Move, Printer, Redo2, Save, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
+import { TriangleAlert as AlertTriangle, Check, ChevronDown, Download, Grid3x2 as Grid3X3, Monitor, Printer, Redo2, Save, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
 import './App.css'
 
 type Slot = {
@@ -132,7 +132,6 @@ function App() {
   const [future, setFuture] = useState<TemplateState[]>([])
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null)
   const [toast, setToast] = useState<string>('')
-  const [previewMode, setPreviewMode] = useState<'editor' | 'print'>('editor')
 
   const update = useCallback((patch: Partial<TemplateState>) => {
     setState(prev => {
@@ -213,8 +212,6 @@ function App() {
   }
 
   const print = () => { window.print() }
-  const enterPreview = () => setPreviewMode('print')
-  const exitPreview = () => setPreviewMode('editor')
 
   const handleAspectRatioChange = (v: number) => {
     const clamped = Math.max(metrics.minRatio, v)
@@ -222,14 +219,7 @@ function App() {
   }
 
   return (
-    <div className={`app ${previewMode === 'print' ? 'print-preview' : ''}`}>
-      {previewMode === 'print' && (
-        <div className="preview-bar no-print">
-          <button className="soft-btn" onClick={exitPreview}><ArrowLeft size={16}/> Back to editor</button>
-          <span className="preview-label"><Eye size={15}/> Print Preview</span>
-          <button className="primary-btn" onClick={print}><Printer size={16}/> Print</button>
-        </div>
-      )}
+    <div className="app">
       <header className="topbar no-print">
         <div className="brand">
           <div className="brand-mark"><Grid3X3 size={20}/></div>
@@ -252,10 +242,6 @@ function App() {
       <div className="workspace">
         <main className="canvas-area">
           <div className="canvas-toolbar no-print">
-            <div className="segmented">
-              <button className={previewMode === 'editor' ? 'active' : ''} onClick={exitPreview}><Move size={14}/> Design</button>
-              <button className={previewMode === 'print' ? 'active' : ''} onClick={enterPreview}><Eye size={14}/> Preview</button>
-            </div>
             <div className="canvas-meta">
               <span>A4 · {A4_WIDTH_MM} × {A4_HEIGHT_MM} mm</span>
             </div>
@@ -274,7 +260,7 @@ function App() {
               selectedCell={selectedCell}
               setSelectedCell={setSelectedCell}
             />
-            <div className="stage-hint no-print"><Maximize2 size={14}/> A4 paper preview · Print at 100%</div>
+
           </div>
 
           <div className="statusbar no-print">
