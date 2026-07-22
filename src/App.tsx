@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Lock, TriangleAlert as AlertTriangle, Check, ChevronDown, Download, Grid3x2 as Grid3X3, Layers, Monitor, Printer, Redo2, Save, Type, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
+import { Lock, TriangleAlert as AlertTriangle, Check, Download, Grid3x2 as Grid3X3, Layers, Monitor, Printer, Redo2, Save, Type, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
 import './App.css'
 
 type Slot = {
@@ -362,7 +362,7 @@ function App() {
           </div>
 
           {activeTab === 'structure' && (
-            <PropertySection title="Structure">
+            <div className="tab-content">
               <div className="three-col">
                 <NumberField label="Rows" value={state.rows} min={1} max={20} onChange={rows => update({ rows })}/>
                 <NumberField label="Columns" value={state.columns} min={1} max={20} onChange={columns => update({ columns })}/>
@@ -381,42 +381,39 @@ function App() {
               </div>
               <Toggle label="Grid lines" checked={state.showGridLines} onChange={showGridLines => update({ showGridLines })}/>
               <Toggle label="Coordinates" checked={state.showCoordinates} onChange={showCoordinates => update({ showCoordinates })}/>
-            </PropertySection>
+            </div>
           )}
 
           {activeTab === 'headerFooter' && (
-            <>
-              <PropertySection title="Regions">
-                <div className="region-pair">
-                  <div className="region-col">
-                    <Toggle label="Header" checked={state.showHeader} onChange={showHeader => update({ showHeader })}/>
-                    {state.showHeader && <NumberField label="Height" value={state.headerHeightMm} min={5} max={30} suffix="mm" onChange={headerHeightMm => update({ headerHeightMm })}/>}
-                  </div>
-                  <div className="region-col">
-                    <Toggle label="Footer" checked={state.showFooter} onChange={showFooter => update({ showFooter })}/>
-                    {state.showFooter && <NumberField label="Height" value={state.footerHeightMm} min={5} max={30} suffix="mm" onChange={footerHeightMm => update({ footerHeightMm })}/>}
-                  </div>
-                </div>
+            <div className="tab-content">
+              <div className="subsection">
+                <h4 className="subsection-title">Header</h4>
+                <Toggle label="Show header" checked={state.showHeader} onChange={showHeader => update({ showHeader })}/>
+                {state.showHeader && <NumberField label="Height" value={state.headerHeightMm} min={5} max={30} suffix="mm" onChange={headerHeightMm => update({ headerHeightMm })}/>}
                 <Toggle label="Box QR code" checked={state.showQr} onChange={showQr => update({ showQr })}/>
-              </PropertySection>
-              <PropertySection title="Box data">
+              </div>
+              <div className="subsection">
+                <h4 className="subsection-title">Footer</h4>
+                <Toggle label="Show footer" checked={state.showFooter} onChange={showFooter => update({ showFooter })}/>
+                {state.showFooter && <NumberField label="Height" value={state.footerHeightMm} min={5} max={30} suffix="mm" onChange={footerHeightMm => update({ footerHeightMm })}/>}
+              </div>
+              <div className="subsection">
+                <h4 className="subsection-title">Box data</h4>
                 <label className="field"><span>Box name</span><input value={state.boxName} onChange={e => update({ boxName: e.target.value })}/></label>
                 <label className="field"><span>Box ID</span><input value={state.boxId} onChange={e => update({ boxId: e.target.value })}/></label>
                 <label className="field"><span>Location</span><input value={state.location} onChange={e => update({ location: e.target.value })}/></label>
                 <label className="field"><span>Owner</span><input value={state.owner} onChange={e => update({ owner: e.target.value })}/></label>
-              </PropertySection>
-            </>
+              </div>
+            </div>
           )}
 
           {activeTab === 'grid' && (
-            <>
-              <PropertySection title="Font sizes">
-                <RangeField label="Name" value={state.nameFontSize} min={4} max={16} step={0.5} suffix="px" onChange={nameFontSize => update({ nameFontSize })}/>
-                <RangeField label="Info" value={state.infoFontSize} min={3} max={14} step={0.5} suffix="px" onChange={infoFontSize => update({ infoFontSize })}/>
-                <RangeField label="Date" value={state.dateFontSize} min={3} max={14} step={0.5} suffix="px" onChange={dateFontSize => update({ dateFontSize })}/>
-              </PropertySection>
+            <div className="tab-content">
+              <RangeField label="Name" value={state.nameFontSize} min={4} max={16} step={0.5} suffix="px" onChange={nameFontSize => update({ nameFontSize })}/>
+              <RangeField label="Info" value={state.infoFontSize} min={3} max={14} step={0.5} suffix="px" onChange={infoFontSize => update({ infoFontSize })}/>
+              <RangeField label="Date" value={state.dateFontSize} min={3} max={14} step={0.5} suffix="px" onChange={dateFontSize => update({ dateFontSize })}/>
               <CellEditor state={state} selectedCell={selectedCell} updateSlot={updateSlot} onClose={() => setSelectedCell(null)}/>
-            </>
+            </div>
           )}
 
           {warnings.length > 0 && <div className="validation-card"><div><AlertTriangle size={16}/><strong>Validation</strong></div>{warnings.map(w => <p key={w}>{w}</p>)}</div>}
@@ -509,9 +506,6 @@ function LabelCanvas({ state, slotsMatrix, metrics, selectedCell, setSelectedCel
   )
 }
 
-function PropertySection({ title, children, open = true }: { title: string; children: React.ReactNode; open?: boolean }) {
-  return <section className="property-section"><div className="property-title"><span>{title}</span><ChevronDown size={15} style={{ transform: open ? '' : 'rotate(-90deg)' }}/></div>{open && <div className="property-content">{children}</div>}</section>
-}
 
 function NumberField({ label, value, onChange, min = 0, max = 999, step = 1, suffix, disabled, locked, onLockClick }: { label: string; value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number; suffix?: string; disabled?: boolean; locked?: boolean; onLockClick?: () => void }) {
   return <label className={`field${locked ? ' field-locked' : ''}`}><span>{label}{onLockClick !== undefined && <button type="button" className={`lock-btn${locked ? ' lock-active' : ''}`} onClick={e => { e.preventDefault(); onLockClick() }}><Lock size={10}/></button>}</span><div className="number-input"><input type="number" value={value} min={min} max={max} step={step} disabled={disabled || locked} onChange={e => onChange(Number(e.target.value))}/>{suffix && <em>{suffix}</em>}</div></label>
