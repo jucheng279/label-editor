@@ -355,22 +355,20 @@ function App() {
         <aside className="right-panel no-print">
           <div className="right-heading"><div><Grid3X3 size={17}/><strong>Settings</strong></div></div>
           <PropertySection title="Structure">
-            <div className="two-col">
+            <div className="three-col">
               <NumberField label="Rows" value={state.rows} min={1} max={20} onChange={rows => update({ rows })}/>
               <NumberField label="Columns" value={state.columns} min={1} max={20} onChange={columns => update({ columns })}/>
+              <NumberField label="Ratio" value={state.cellAspectRatio} min={Math.round(metrics.minRatio * 100) / 100} max={5} step={0.05} onChange={handleAspectRatioChange}/>
             </div>
-            <div className="two-col">
-              <NumberField label="Cell W" value={Number(metrics.cellWidth.toFixed(2))} min={1} max={80} step={0.1} suffix="mm" locked={state.lockedParam === 'cellWidth'} onLockClick={() => handleLockChange('cellWidth')} onChange={handleCellWidthChange}/>
-              <NumberField label="Cell H" value={Number(metrics.cellHeight.toFixed(2))} min={1} max={80} step={0.1} suffix="mm" onChange={handleCellHeightChange}/>
-            </div>
-            <NumberField label="Ratio" value={state.cellAspectRatio} min={Math.round(metrics.minRatio * 100) / 100} max={5} step={0.05} onChange={handleAspectRatioChange}/>
             {metrics.clamped && <div className="clamp-notice">Ratio limited to fit page height</div>}
-            <div className="two-col">
+            <div className="three-col">
+              <NumberField label="Cell W" value={Number(metrics.cellWidth.toFixed(2))} min={1} max={80} step={0.1} suffix="mm" locked={state.lockedParam === 'cellWidth'} onLockClick={() => handleLockChange('cellWidth')} onChange={handleCellWidthChange}/>
               <NumberField label="Gap H" value={Number(metrics.effectiveGapH.toFixed(2))} min={0} max={10} step={0.05} suffix="mm" locked={state.lockedParam === 'gapH'} onLockClick={() => handleLockChange('gapH')} onChange={handleGapHChange}/>
-              <NumberField label="Gap V" value={state.gridGapVMm} min={0} max={4} step={0.05} suffix="mm" onChange={gridGapVMm => update({ gridGapVMm })}/>
-            </div>
-            <div className="two-col">
               <NumberField label="Pad H" value={Number(metrics.effectivePaddingH.toFixed(2))} min={0} max={30} step={0.5} suffix="mm" locked={state.lockedParam === 'paddingH'} onLockClick={() => handleLockChange('paddingH')} onChange={handlePadHChange}/>
+            </div>
+            <div className="three-col">
+              <NumberField label="Cell H" value={Number(metrics.cellHeight.toFixed(2))} min={1} max={80} step={0.1} suffix="mm" onChange={handleCellHeightChange}/>
+              <NumberField label="Gap V" value={state.gridGapVMm} min={0} max={4} step={0.05} suffix="mm" onChange={gridGapVMm => update({ gridGapVMm })}/>
               <NumberField label="Pad V" value={state.paddingVMm} min={0} max={20} step={0.5} suffix="mm" onChange={paddingVMm => update({ paddingVMm })}/>
             </div>
             <Toggle label="Grid lines" checked={state.showGridLines} onChange={showGridLines => update({ showGridLines })}/>
