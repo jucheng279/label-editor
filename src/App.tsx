@@ -275,8 +275,8 @@ function App() {
           <div className="right-heading"><div><Grid3X3 size={17}/><strong>Settings</strong></div></div>
           <PropertySection title="Structure">
             <div className="three-col">
-              <NumberField label="Rows" value={state.rows} min={1} max={26} onChange={rows => update({ rows })}/>
-              <NumberField label="Columns" value={state.columns} min={1} max={24} onChange={columns => update({ columns })}/>
+              <NumberField label="Rows" value={state.rows} min={1} max={20} onChange={rows => update({ rows })}/>
+              <NumberField label="Columns" value={state.columns} min={1} max={20} onChange={columns => update({ columns })}/>
               <NumberField label="Ratio" value={state.cellAspectRatio} min={Math.round(metrics.minRatio * 100) / 100} max={5} step={0.05} onChange={handleAspectRatioChange}/>
             </div>
             {metrics.clamped && <div className="clamp-notice">Ratio limited to fit page height</div>}
