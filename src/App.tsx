@@ -323,16 +323,6 @@ function App() {
 
       <div className="workspace">
         <main className="canvas-area">
-          <div className="canvas-toolbar no-print">
-            <div className="canvas-meta">
-              <span>A4 · {A4_WIDTH_MM} × {A4_HEIGHT_MM} mm</span>
-            </div>
-            <div className="zoom-control">
-              <button onClick={() => update({ zoom: Math.max(.4, state.zoom - .1) })}><ZoomOut size={16}/></button>
-              <span>{Math.round(state.zoom * 100)}%</span>
-              <button onClick={() => update({ zoom: Math.min(1.5, state.zoom + .1) })}><ZoomIn size={16}/></button>
-            </div>
-          </div>
 
           <div className="canvas-stage">
             <LabelCanvas
@@ -346,10 +336,12 @@ function App() {
           </div>
 
           <div className="statusbar no-print">
-            <div className={warnings.length ? 'warning-status' : 'ok-status'}>
-              {warnings.length ? <AlertTriangle size={15}/> : <Check size={15}/>} {warnings.length ? `${warnings.length} layout warning${warnings.length > 1 ? 's' : ''}` : 'Ready to print'}
-            </div>
             <div>{state.slots.filter(s => s.row < state.rows && s.col < state.columns).length} occupied · {state.rows * state.columns - state.slots.filter(s => s.row < state.rows && s.col < state.columns).length} empty</div>
+            <div className="zoom-control">
+              <button onClick={() => update({ zoom: Math.max(.4, state.zoom - .1) })}><ZoomOut size={16}/></button>
+              <span>{Math.round(state.zoom * 100)}%</span>
+              <button onClick={() => update({ zoom: Math.min(1.5, state.zoom + .1) })}><ZoomIn size={16}/></button>
+            </div>
           </div>
         </main>
 
