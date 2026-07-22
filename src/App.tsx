@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Lock, TriangleAlert as AlertTriangle, Check, ChevronDown, Download, Grid3x2 as Grid3X3, Monitor, Printer, Redo2, Save, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
+import { Lock, TriangleAlert as AlertTriangle, Check, ChevronDown, Download, Grid3x2 as Grid3X3, Layers, Monitor, Printer, Redo2, Save, Type, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
 import './App.css'
 
 type Slot = {
@@ -11,6 +11,8 @@ type Slot = {
 }
 
 type LockedParam = 'cellWidth' | 'gapH' | 'paddingH'
+
+type SidebarTab = 'structure' | 'headerFooter' | 'grid'
 
 type TemplateState = {
   templateName: string
@@ -36,6 +38,9 @@ type TemplateState = {
   lockedParam: LockedParam
   zoom: number
   slots: Slot[]
+  nameFontSize: number
+  infoFontSize: number
+  dateFontSize: number
 }
 
 const A4_WIDTH_MM = 210
@@ -77,6 +82,9 @@ const initialState: TemplateState = {
   lockedParam: 'cellWidth',
   zoom: 0.85,
   slots: initialSlots,
+  nameFontSize: 8,
+  infoFontSize: 6,
+  dateFontSize: 6,
 }
 
 function rowLabel(index: number) {
@@ -156,6 +164,7 @@ function App() {
   const [future, setFuture] = useState<TemplateState[]>([])
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null)
   const [toast, setToast] = useState<string>('')
+  const [activeTab, setActiveTab] = useState<SidebarTab>('structure')
 
   const update = useCallback((patch: Partial<TemplateState>) => {
     setState(prev => {
@@ -346,47 +355,70 @@ function App() {
         </main>
 
         <aside className="right-panel no-print">
-          <div className="right-heading"><div><Grid3X3 size={17}/><strong>Settings</strong></div></div>
-          <PropertySection title="Structure">
-            <div className="three-col">
-              <NumberField label="Rows" value={state.rows} min={1} max={20} onChange={rows => update({ rows })}/>
-              <NumberField label="Columns" value={state.columns} min={1} max={20} onChange={columns => update({ columns })}/>
-              <NumberField label="Ratio" value={state.cellAspectRatio} min={Math.round(metrics.minRatio * 100) / 100} max={5} step={0.05} onChange={handleAspectRatioChange}/>
-            </div>
-            {metrics.clamped && <div className="clamp-notice">Ratio limited to fit page height</div>}
-            <div className="three-col">
-              <NumberField label="Cell W" value={Number(metrics.cellWidth.toFixed(2))} min={1} max={80} step={0.1} locked={state.lockedParam === 'cellWidth'} onLockClick={() => handleLockChange('cellWidth')} onChange={handleCellWidthChange}/>
-              <NumberField label="Gap H" value={Number(metrics.effectiveGapH.toFixed(2))} min={0} max={10} step={0.05} locked={state.lockedParam === 'gapH'} onLockClick={() => handleLockChange('gapH')} onChange={handleGapHChange}/>
-              <NumberField label="Pad H" value={Number(metrics.effectivePaddingH.toFixed(2))} min={0} max={30} step={0.5} locked={state.lockedParam === 'paddingH'} onLockClick={() => handleLockChange('paddingH')} onChange={handlePadHChange}/>
-            </div>
-            <div className="three-col">
-              <NumberField label="Cell H" value={Number(metrics.cellHeight.toFixed(2))} min={1} max={80} step={0.1} onChange={handleCellHeightChange}/>
-              <NumberField label="Gap V" value={state.gridGapVMm} min={0} max={4} step={0.05} onChange={gridGapVMm => update({ gridGapVMm })}/>
-              <NumberField label="Pad V" value={state.paddingVMm} min={0} max={20} step={0.5} onChange={paddingVMm => update({ paddingVMm })}/>
-            </div>
-            <Toggle label="Grid lines" checked={state.showGridLines} onChange={showGridLines => update({ showGridLines })}/>
-            <Toggle label="Coordinates" checked={state.showCoordinates} onChange={showCoordinates => update({ showCoordinates })}/>
-          </PropertySection>
-          <PropertySection title="Regions">
-            <div className="region-pair">
-              <div className="region-col">
-                <Toggle label="Header" checked={state.showHeader} onChange={showHeader => update({ showHeader })}/>
-                {state.showHeader && <NumberField label="Height" value={state.headerHeightMm} min={5} max={30} suffix="mm" onChange={headerHeightMm => update({ headerHeightMm })}/>}
+          <div className="tab-bar">
+            <button className={`tab-btn${activeTab === 'structure' ? ' tab-active' : ''}`} onClick={() => setActiveTab('structure')}><Layers size={14}/>Structure</button>
+            <button className={`tab-btn${activeTab === 'headerFooter' ? ' tab-active' : ''}`} onClick={() => setActiveTab('headerFooter')}><Grid3X3 size={14}/>Header & Footer</button>
+            <button className={`tab-btn${activeTab === 'grid' ? ' tab-active' : ''}`} onClick={() => setActiveTab('grid')}><Type size={14}/>Grid</button>
+          </div>
+
+          {activeTab === 'structure' && (
+            <PropertySection title="Structure">
+              <div className="three-col">
+                <NumberField label="Rows" value={state.rows} min={1} max={20} onChange={rows => update({ rows })}/>
+                <NumberField label="Columns" value={state.columns} min={1} max={20} onChange={columns => update({ columns })}/>
+                <NumberField label="Ratio" value={state.cellAspectRatio} min={Math.round(metrics.minRatio * 100) / 100} max={5} step={0.05} onChange={handleAspectRatioChange}/>
               </div>
-              <div className="region-col">
-                <Toggle label="Footer" checked={state.showFooter} onChange={showFooter => update({ showFooter })}/>
-                {state.showFooter && <NumberField label="Height" value={state.footerHeightMm} min={5} max={30} suffix="mm" onChange={footerHeightMm => update({ footerHeightMm })}/>}
+              {metrics.clamped && <div className="clamp-notice">Ratio limited to fit page height</div>}
+              <div className="three-col">
+                <NumberField label="Cell W" value={Number(metrics.cellWidth.toFixed(2))} min={1} max={80} step={0.1} locked={state.lockedParam === 'cellWidth'} onLockClick={() => handleLockChange('cellWidth')} onChange={handleCellWidthChange}/>
+                <NumberField label="Gap H" value={Number(metrics.effectiveGapH.toFixed(2))} min={0} max={10} step={0.05} locked={state.lockedParam === 'gapH'} onLockClick={() => handleLockChange('gapH')} onChange={handleGapHChange}/>
+                <NumberField label="Pad H" value={Number(metrics.effectivePaddingH.toFixed(2))} min={0} max={30} step={0.5} locked={state.lockedParam === 'paddingH'} onLockClick={() => handleLockChange('paddingH')} onChange={handlePadHChange}/>
               </div>
-            </div>
-            <Toggle label="QR code" checked={state.showQr} onChange={showQr => update({ showQr })}/>
-          </PropertySection>
-          <PropertySection title="Box data">
-            <label className="field"><span>Box name</span><input value={state.boxName} onChange={e => update({ boxName: e.target.value })}/></label>
-            <label className="field"><span>Box ID</span><input value={state.boxId} onChange={e => update({ boxId: e.target.value })}/></label>
-            <label className="field"><span>Location</span><input value={state.location} onChange={e => update({ location: e.target.value })}/></label>
-            <label className="field"><span>Owner</span><input value={state.owner} onChange={e => update({ owner: e.target.value })}/></label>
-          </PropertySection>
-          <CellEditor state={state} selectedCell={selectedCell} updateSlot={updateSlot} onClose={() => setSelectedCell(null)}/>
+              <div className="three-col">
+                <NumberField label="Cell H" value={Number(metrics.cellHeight.toFixed(2))} min={1} max={80} step={0.1} onChange={handleCellHeightChange}/>
+                <NumberField label="Gap V" value={state.gridGapVMm} min={0} max={4} step={0.05} onChange={gridGapVMm => update({ gridGapVMm })}/>
+                <NumberField label="Pad V" value={state.paddingVMm} min={0} max={20} step={0.5} onChange={paddingVMm => update({ paddingVMm })}/>
+              </div>
+              <Toggle label="Grid lines" checked={state.showGridLines} onChange={showGridLines => update({ showGridLines })}/>
+              <Toggle label="Coordinates" checked={state.showCoordinates} onChange={showCoordinates => update({ showCoordinates })}/>
+            </PropertySection>
+          )}
+
+          {activeTab === 'headerFooter' && (
+            <>
+              <PropertySection title="Regions">
+                <div className="region-pair">
+                  <div className="region-col">
+                    <Toggle label="Header" checked={state.showHeader} onChange={showHeader => update({ showHeader })}/>
+                    {state.showHeader && <NumberField label="Height" value={state.headerHeightMm} min={5} max={30} suffix="mm" onChange={headerHeightMm => update({ headerHeightMm })}/>}
+                  </div>
+                  <div className="region-col">
+                    <Toggle label="Footer" checked={state.showFooter} onChange={showFooter => update({ showFooter })}/>
+                    {state.showFooter && <NumberField label="Height" value={state.footerHeightMm} min={5} max={30} suffix="mm" onChange={footerHeightMm => update({ footerHeightMm })}/>}
+                  </div>
+                </div>
+                <Toggle label="Box QR code" checked={state.showQr} onChange={showQr => update({ showQr })}/>
+              </PropertySection>
+              <PropertySection title="Box data">
+                <label className="field"><span>Box name</span><input value={state.boxName} onChange={e => update({ boxName: e.target.value })}/></label>
+                <label className="field"><span>Box ID</span><input value={state.boxId} onChange={e => update({ boxId: e.target.value })}/></label>
+                <label className="field"><span>Location</span><input value={state.location} onChange={e => update({ location: e.target.value })}/></label>
+                <label className="field"><span>Owner</span><input value={state.owner} onChange={e => update({ owner: e.target.value })}/></label>
+              </PropertySection>
+            </>
+          )}
+
+          {activeTab === 'grid' && (
+            <>
+              <PropertySection title="Font sizes">
+                <RangeField label="Name" value={state.nameFontSize} min={4} max={16} step={0.5} suffix="px" onChange={nameFontSize => update({ nameFontSize })}/>
+                <RangeField label="Info" value={state.infoFontSize} min={3} max={14} step={0.5} suffix="px" onChange={infoFontSize => update({ infoFontSize })}/>
+                <RangeField label="Date" value={state.dateFontSize} min={3} max={14} step={0.5} suffix="px" onChange={dateFontSize => update({ dateFontSize })}/>
+              </PropertySection>
+              <CellEditor state={state} selectedCell={selectedCell} updateSlot={updateSlot} onClose={() => setSelectedCell(null)}/>
+            </>
+          )}
+
           {warnings.length > 0 && <div className="validation-card"><div><AlertTriangle size={16}/><strong>Validation</strong></div>{warnings.map(w => <p key={w}>{w}</p>)}</div>}
         </aside>
       </div>
@@ -452,9 +484,9 @@ function LabelCanvas({ state, slotsMatrix, metrics, selectedCell, setSelectedCel
                     >
                       {slot ? (
                         <>
-                          <strong title={slot.name}>{slot.name}</strong>
-                          <span title={slot.info}>{slot.info}</span>
-                          <small>{slot.date}</small>
+                          <strong title={slot.name} style={{ fontSize: state.nameFontSize + 'px' }}>{slot.name}</strong>
+                          <span title={slot.info} style={{ fontSize: state.infoFontSize + 'px' }}>{slot.info}</span>
+                          <small style={{ fontSize: state.dateFontSize + 'px' }}>{slot.date}</small>
                         </>
                       ) : (
                         <span className="empty-content">{coordinate}</span>
@@ -483,6 +515,10 @@ function PropertySection({ title, children, open = true }: { title: string; chil
 
 function NumberField({ label, value, onChange, min = 0, max = 999, step = 1, suffix, disabled, locked, onLockClick }: { label: string; value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number; suffix?: string; disabled?: boolean; locked?: boolean; onLockClick?: () => void }) {
   return <label className={`field${locked ? ' field-locked' : ''}`}><span>{label}{onLockClick !== undefined && <button type="button" className={`lock-btn${locked ? ' lock-active' : ''}`} onClick={e => { e.preventDefault(); onLockClick() }}><Lock size={10}/></button>}</span><div className="number-input"><input type="number" value={value} min={min} max={max} step={step} disabled={disabled || locked} onChange={e => onChange(Number(e.target.value))}/>{suffix && <em>{suffix}</em>}</div></label>
+}
+
+function RangeField({ label, value, onChange, min = 3, max = 16, step = 0.5, suffix = 'px' }: { label: string; value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number; suffix?: string }) {
+  return <label className="field range-field"><span>{label}<em className="range-value">{value}{suffix}</em></span><input type="range" min={min} max={max} step={step} value={value} onChange={e => onChange(Number(e.target.value))}/></label>
 }
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
