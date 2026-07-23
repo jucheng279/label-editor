@@ -401,7 +401,7 @@ function App() {
               <div className="subsection">
                 <h4 className="subsection-title">Header</h4>
                 <Toggle label="Show header" checked={state.showHeader} onChange={showHeader => update({ showHeader })}/>
-                {state.showHeader && <NumberField label="Height" value={state.headerHeightMm} min={5} max={30} suffix="mm" onChange={headerHeightMm => update({ headerHeightMm })}/>}
+                {state.showHeader && <RangeField label="Height" value={state.headerHeightMm} min={5} max={30} step={1} suffix="mm" onChange={headerHeightMm => update({ headerHeightMm })}/>}
                 <div className="field-with-size">
                   <label className="field"><span>Box name</span><input value={state.boxName} onChange={e => update({ boxName: e.target.value })}/></label>
                   <label className="field range-field size-slider"><span>Size <em className="range-value">{state.boxNameFontSize}px</em></span><input type="range" min={6} max={24} step={0.5} value={state.boxNameFontSize} onChange={e => update({ boxNameFontSize: Number(e.target.value) })}/></label>
@@ -418,7 +418,7 @@ function App() {
               <div className="subsection">
                 <h4 className="subsection-title">Footer</h4>
                 <Toggle label="Show footer" checked={state.showFooter} onChange={showFooter => update({ showFooter })}/>
-                {state.showFooter && <NumberField label="Height" value={state.footerHeightMm} min={5} max={30} suffix="mm" onChange={footerHeightMm => update({ footerHeightMm })}/>}
+                {state.showFooter && <RangeField label="Height" value={state.footerHeightMm} min={5} max={30} step={1} suffix="mm" onChange={footerHeightMm => update({ footerHeightMm })}/>}
                 <div className="field-with-size">
                   <label className="field"><span>Owner</span><input value={state.owner} onChange={e => update({ owner: e.target.value })}/></label>
                   <label className="field range-field size-slider"><span>Size <em className="range-value">{state.ownerFontSize}px</em></span><input type="range" min={5} max={20} step={0.5} value={state.ownerFontSize} onChange={e => update({ ownerFontSize: Number(e.target.value) })}/></label>
