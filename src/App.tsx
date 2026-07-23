@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Lock, TriangleAlert as AlertTriangle, Check, Download, Grid3x2 as Grid3X3, Layers, Monitor, Printer, Redo2, Save, Type, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
+import { Lock, TriangleAlert as AlertTriangle, Check, Download, Grid3x2 as Grid3X3, Monitor, Printer, Redo2, Save, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
 import './App.css'
 
 type Slot = {
@@ -421,9 +421,9 @@ function App() {
 
         <aside className="right-panel no-print">
           <div className="tab-bar">
-            <button className={`tab-btn${activeTab === 'structure' ? ' tab-active' : ''}`} onClick={() => setActiveTab('structure')}><Layers size={14}/>Structure</button>
-            <button className={`tab-btn${activeTab === 'headerFooter' ? ' tab-active' : ''}`} onClick={() => setActiveTab('headerFooter')}><Grid3X3 size={14}/>Header & Footer</button>
-            <button className={`tab-btn${activeTab === 'grid' ? ' tab-active' : ''}`} onClick={() => setActiveTab('grid')}><Type size={14}/>Grid</button>
+            <button className={`tab-btn${activeTab === 'structure' ? ' tab-active' : ''}`} onClick={() => setActiveTab('structure')}>Structure</button>
+            <button className={`tab-btn${activeTab === 'headerFooter' ? ' tab-active' : ''}`} onClick={() => setActiveTab('headerFooter')}>Header & Footer</button>
+            <button className={`tab-btn${activeTab === 'grid' ? ' tab-active' : ''}`} onClick={() => setActiveTab('grid')}>Grid</button>
           </div>
 
           {activeTab === 'structure' && (
