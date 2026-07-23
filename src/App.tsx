@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Lock, TriangleAlert as AlertTriangle, Check, Download, Grid3x2 as Grid3X3, Monitor, Printer, Redo2, Save, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
 import './App.css'
 
@@ -286,6 +286,27 @@ function App() {
     update({ slots })
   }
 
+  const canvasStageRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = canvasStageRef.current
+    if (!el) return
+    const handler = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return
+      e.preventDefault()
+      const delta = -e.deltaY * 0.005
+      setState(prev => {
+        const newZoom = Math.min(1.5, Math.max(0.4, prev.zoom + delta))
+        if (newZoom === prev.zoom) return prev
+        setHistory(h => [...h.slice(-39), prev])
+        setFuture([])
+        return { ...prev, zoom: newZoom }
+      })
+    }
+    el.addEventListener('wheel', handler, { passive: false })
+    return () => el.removeEventListener('wheel', handler)
+  }, [])
+
   const print = () => { window.print() }
 
   const handleAspectRatioChange = (v: number) => {
@@ -398,7 +419,7 @@ function App() {
       <div className="workspace">
         <main className="canvas-area">
 
-          <div className="canvas-stage">
+          <div className="canvas-stage" ref={canvasStageRef}>
             <LabelCanvas
               state={state}
               slotsMatrix={slotsMatrix}
