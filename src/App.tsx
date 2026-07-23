@@ -51,6 +51,8 @@ type TemplateState = {
   boldName: boolean
   boldInfo: boolean
   boldDate: boolean
+  showDataMatrix: boolean
+  dataMatrixSizeMm: number
   printDate: string
   boxNameFontSize: number
   boxIdFontSize: number
@@ -123,6 +125,8 @@ const initialState: TemplateState = {
   boldName: true,
   boldInfo: false,
   boldDate: false,
+  showDataMatrix: false,
+  dataMatrixSizeMm: 3,
   printDate: new Date().toLocaleDateString(),
   boxNameFontSize: 15,
   boxIdFontSize: 10,
@@ -599,6 +603,14 @@ function App() {
                 <input type="range" className="grid-text-slider" min={3} max={14} step={0.5} value={state.dateFontSize} onChange={e => update({ dateFontSize: Number(e.target.value) })}/>
                 <em className="range-value">{state.dateFontSize}px</em>
               </div>
+              <div className="grid-text-row">
+                <span className="grid-text-label">Matrix</span>
+                <Toggle label="" checked={state.showDataMatrix} onChange={showDataMatrix => update({ showDataMatrix })}/>
+                {state.showDataMatrix && <>
+                  <input type="range" className="grid-text-slider" min={1.5} max={10} step={0.5} value={state.dataMatrixSizeMm} onChange={e => update({ dataMatrixSizeMm: Number(e.target.value) })}/>
+                  <em className="range-value">{state.dataMatrixSizeMm}mm</em>
+                </>}
+              </div>
               <CellEditor state={state} selectedCell={selectedCell} updateSlot={updateSlot} onClose={() => setSelectedCell(null)}/>
             </div>
           )}
@@ -617,6 +629,36 @@ function App() {
       </div>
 
       {toast && <div className="toast"><Check size={16}/>{toast}</div>}
+    </div>
+  )
+}
+
+const DATA_MATRIX_PATTERN = [
+  [1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,0,1,0,0,1,0,1,1,0,0,1],
+  [1,1,0,1,1,0,1,0,0,1,1,0],
+  [1,0,0,0,1,1,0,1,0,0,1,1],
+  [1,1,1,0,0,1,1,0,1,1,0,0],
+  [1,0,1,1,0,0,1,1,0,1,0,1],
+  [1,1,0,0,1,0,0,1,1,0,1,0],
+  [1,0,0,1,1,1,0,0,1,0,0,1],
+  [1,1,1,0,0,0,1,1,0,1,1,0],
+  [1,0,1,1,1,0,1,0,0,1,0,1],
+  [1,1,0,1,0,1,0,1,1,0,1,0],
+  [1,0,1,0,1,0,1,0,1,0,1,1],
+]
+
+function DataMatrix({ sizePx }: { sizePx: number }) {
+  const moduleSize = sizePx / 12
+  return (
+    <div className="data-matrix" style={{ width: sizePx, height: sizePx, flexShrink: 0 }}>
+      {DATA_MATRIX_PATTERN.map((row, ri) => (
+        <div key={ri} className="dm-row" style={{ height: moduleSize }}>
+          {row.map((v, ci) => (
+            <i key={ci} className={v ? 'on' : ''} style={{ width: moduleSize, height: moduleSize }} />
+          ))}
+        </div>
+      ))}
     </div>
   )
 }
@@ -667,11 +709,14 @@ function LabelCanvas({ state, slotsMatrix, metrics, selectedCell, setSelectedCel
                       onClick={() => setSelectedCell({ row: r, col: c })}
                     >
                       {slot ? (
-                        <>
-                          {state.showName && <strong title={slot.name} style={{ fontSize: state.nameFontSize + 'px', fontWeight: state.boldName ? 700 : 400 }}>{slot.name}</strong>}
-                          {state.showInfo && <span title={slot.info} style={{ fontSize: state.infoFontSize + 'px', fontWeight: state.boldInfo ? 700 : 400 }}>{slot.info}</span>}
-                          {state.showDate && <small style={{ fontSize: state.dateFontSize + 'px', fontWeight: state.boldDate ? 700 : 400 }}>{slot.date}</small>}
-                        </>
+                        <div className={`cell-content ${state.showDataMatrix ? 'cell-with-matrix' : ''}`}>
+                          <div className="cell-text">
+                            {state.showName && <strong title={slot.name} style={{ fontSize: state.nameFontSize + 'px', fontWeight: state.boldName ? 700 : 400 }}>{slot.name}</strong>}
+                            {state.showInfo && <span title={slot.info} style={{ fontSize: state.infoFontSize + 'px', fontWeight: state.boldInfo ? 700 : 400 }}>{slot.info}</span>}
+                            {state.showDate && <small style={{ fontSize: state.dateFontSize + 'px', fontWeight: state.boldDate ? 700 : 400 }}>{slot.date}</small>}
+                          </div>
+                          {state.showDataMatrix && <DataMatrix sizePx={state.dataMatrixSizeMm * pxPerMm} />}
+                        </div>
                       ) : (
                         <span className="empty-content">{coordinate}</span>
                       )}
