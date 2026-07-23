@@ -41,6 +41,7 @@ type TemplateState = {
   nameFontSize: number
   infoFontSize: number
   dateFontSize: number
+  printDate: string
 }
 
 const A4_WIDTH_MM = 210
@@ -85,6 +86,7 @@ const initialState: TemplateState = {
   nameFontSize: 8,
   infoFontSize: 6,
   dateFontSize: 6,
+  printDate: new Date().toISOString().slice(0, 10),
 }
 
 function rowLabel(index: number) {
@@ -390,7 +392,6 @@ function App() {
                 <h4 className="subsection-title">Header</h4>
                 <Toggle label="Show header" checked={state.showHeader} onChange={showHeader => update({ showHeader })}/>
                 {state.showHeader && <NumberField label="Height" value={state.headerHeightMm} min={5} max={30} suffix="mm" onChange={headerHeightMm => update({ headerHeightMm })}/>}
-                <Toggle label="Box QR code" checked={state.showQr} onChange={showQr => update({ showQr })}/>
                 <label className="field"><span>Box name</span><input value={state.boxName} onChange={e => update({ boxName: e.target.value })}/></label>
                 <label className="field"><span>Box ID</span><input value={state.boxId} onChange={e => update({ boxId: e.target.value })}/></label>
                 <label className="field"><span>Location</span><input value={state.location} onChange={e => update({ location: e.target.value })}/></label>
@@ -400,6 +401,8 @@ function App() {
                 <Toggle label="Show footer" checked={state.showFooter} onChange={showFooter => update({ showFooter })}/>
                 {state.showFooter && <NumberField label="Height" value={state.footerHeightMm} min={5} max={30} suffix="mm" onChange={footerHeightMm => update({ footerHeightMm })}/>}
                 <label className="field"><span>Owner</span><input value={state.owner} onChange={e => update({ owner: e.target.value })}/></label>
+                <label className="field"><span>Print date</span><input type="date" value={state.printDate} onChange={e => update({ printDate: e.target.value })}/></label>
+                <Toggle label="Box QR code" checked={state.showQr} onChange={showQr => update({ showQr })}/>
               </div>
 
             </div>
@@ -496,7 +499,7 @@ function LabelCanvas({ state, slotsMatrix, metrics, selectedCell, setSelectedCel
         {state.showFooter && (
           <div className="label-footer" style={{ height: state.footerHeightMm * pxPerMm }}>
             <div className="footer-meta"><strong>{state.owner}</strong></div>
-            <div className="footer-date"><span>Printed {new Date().toLocaleDateString()}</span></div>
+            <div className="footer-date"><span>Printed {new Date(state.printDate + 'T00:00:00').toLocaleDateString()}</span></div>
             {state.showQr && <div className="qr" aria-label="QR code preview">{qr.map((on, i) => <i key={i} className={on ? 'on' : ''}/>)}</div>}
           </div>
         )}
