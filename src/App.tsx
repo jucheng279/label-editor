@@ -295,9 +295,19 @@ function App() {
       if (!e.ctrlKey && !e.metaKey) return
       e.preventDefault()
       const delta = -e.deltaY * 0.005
+      const rect = el.getBoundingClientRect()
+      const cursorX = e.clientX - rect.left
+      const cursorY = e.clientY - rect.top
+      const contentX = el.scrollLeft + cursorX
+      const contentY = el.scrollTop + cursorY
       setState(prev => {
         const newZoom = Math.min(1.5, Math.max(0.4, prev.zoom + delta))
         if (newZoom === prev.zoom) return prev
+        const scale = newZoom / prev.zoom
+        requestAnimationFrame(() => {
+          el.scrollLeft = contentX * scale - cursorX
+          el.scrollTop = contentY * scale - cursorY
+        })
         setHistory(h => [...h.slice(-39), prev])
         setFuture([])
         return { ...prev, zoom: newZoom }
