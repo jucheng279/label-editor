@@ -43,6 +43,12 @@ type TemplateState = {
   nameFontSize: number
   infoFontSize: number
   dateFontSize: number
+  showName: boolean
+  showInfo: boolean
+  showDate: boolean
+  boldName: boolean
+  boldInfo: boolean
+  boldDate: boolean
   printDate: string
   boxNameFontSize: number
   boxIdFontSize: number
@@ -107,6 +113,12 @@ const initialState: TemplateState = {
   nameFontSize: 8,
   infoFontSize: 6,
   dateFontSize: 6,
+  showName: true,
+  showInfo: true,
+  showDate: true,
+  boldName: true,
+  boldInfo: false,
+  boldDate: false,
   printDate: new Date().toLocaleDateString(),
   boxNameFontSize: 15,
   boxIdFontSize: 10,
@@ -492,9 +504,27 @@ function App() {
 
           {activeTab === 'grid' && (
             <div className="tab-content">
-              <RangeField label="Name" value={state.nameFontSize} min={4} max={16} step={0.5} suffix="px" onChange={nameFontSize => update({ nameFontSize })}/>
-              <RangeField label="Info" value={state.infoFontSize} min={3} max={14} step={0.5} suffix="px" onChange={infoFontSize => update({ infoFontSize })}/>
-              <RangeField label="Date" value={state.dateFontSize} min={3} max={14} step={0.5} suffix="px" onChange={dateFontSize => update({ dateFontSize })}/>
+              <div className="grid-text-row">
+                <span className="grid-text-label">Name</span>
+                <Toggle label="" checked={state.showName} onChange={showName => update({ showName })}/>
+                <button className={`bold-btn ${state.boldName ? 'active' : ''}`} title="Bold" onClick={() => update({ boldName: !state.boldName })}>B</button>
+                <input type="range" className="grid-text-slider" min={4} max={16} step={0.5} value={state.nameFontSize} onChange={e => update({ nameFontSize: Number(e.target.value) })}/>
+                <em className="range-value">{state.nameFontSize}px</em>
+              </div>
+              <div className="grid-text-row">
+                <span className="grid-text-label">Info</span>
+                <Toggle label="" checked={state.showInfo} onChange={showInfo => update({ showInfo })}/>
+                <button className={`bold-btn ${state.boldInfo ? 'active' : ''}`} title="Bold" onClick={() => update({ boldInfo: !state.boldInfo })}>B</button>
+                <input type="range" className="grid-text-slider" min={3} max={14} step={0.5} value={state.infoFontSize} onChange={e => update({ infoFontSize: Number(e.target.value) })}/>
+                <em className="range-value">{state.infoFontSize}px</em>
+              </div>
+              <div className="grid-text-row">
+                <span className="grid-text-label">Date</span>
+                <Toggle label="" checked={state.showDate} onChange={showDate => update({ showDate })}/>
+                <button className={`bold-btn ${state.boldDate ? 'active' : ''}`} title="Bold" onClick={() => update({ boldDate: !state.boldDate })}>B</button>
+                <input type="range" className="grid-text-slider" min={3} max={14} step={0.5} value={state.dateFontSize} onChange={e => update({ dateFontSize: Number(e.target.value) })}/>
+                <em className="range-value">{state.dateFontSize}px</em>
+              </div>
               <CellEditor state={state} selectedCell={selectedCell} updateSlot={updateSlot} onClose={() => setSelectedCell(null)}/>
             </div>
           )}
@@ -564,9 +594,9 @@ function LabelCanvas({ state, slotsMatrix, metrics, selectedCell, setSelectedCel
                     >
                       {slot ? (
                         <>
-                          <strong title={slot.name} style={{ fontSize: state.nameFontSize + 'px' }}>{slot.name}</strong>
-                          <span title={slot.info} style={{ fontSize: state.infoFontSize + 'px' }}>{slot.info}</span>
-                          <small style={{ fontSize: state.dateFontSize + 'px' }}>{slot.date}</small>
+                          {state.showName && <strong title={slot.name} style={{ fontSize: state.nameFontSize + 'px', fontWeight: state.boldName ? 700 : 400 }}>{slot.name}</strong>}
+                          {state.showInfo && <span title={slot.info} style={{ fontSize: state.infoFontSize + 'px', fontWeight: state.boldInfo ? 700 : 400 }}>{slot.info}</span>}
+                          {state.showDate && <small style={{ fontSize: state.dateFontSize + 'px', fontWeight: state.boldDate ? 700 : 400 }}>{slot.date}</small>}
                         </>
                       ) : (
                         <span className="empty-content">{coordinate}</span>
