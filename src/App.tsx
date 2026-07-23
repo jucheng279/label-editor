@@ -430,14 +430,20 @@ function App() {
         <main className="canvas-area">
 
           <div className="canvas-stage" ref={canvasStageRef}>
-            <LabelCanvas
-              state={state}
-              slotsMatrix={slotsMatrix}
-              metrics={metrics}
-              selectedCell={selectedCell}
-              setSelectedCell={setSelectedCell}
-            />
-
+            <div className="zoom-wrapper" style={{
+              width: state.canvasWidthMm * 3.78 * state.zoom,
+              height: state.canvasHeightMm * 3.78 * state.zoom,
+            }}>
+              <div style={{ transform: `scale(${state.zoom})`, transformOrigin: '0 0' }}>
+                <LabelCanvas
+                  state={state}
+                  slotsMatrix={slotsMatrix}
+                  metrics={metrics}
+                  selectedCell={selectedCell}
+                  setSelectedCell={setSelectedCell}
+                />
+              </div>
+            </div>
           </div>
 
           <div className="statusbar no-print">
@@ -586,7 +592,7 @@ function LabelCanvas({ state, slotsMatrix, metrics, selectedCell, setSelectedCel
   setSelectedCell: (v: { row: number; col: number } | null) => void
 }) {
   const qr = makeQrPattern(state.boxId)
-  const pxPerMm = 3.78 * state.zoom
+  const pxPerMm = 3.78
   const canvasW = state.canvasWidthMm * pxPerMm
   const canvasH = state.canvasHeightMm * pxPerMm
   const cellWpx = metrics.cellWidth * pxPerMm
@@ -599,8 +605,8 @@ function LabelCanvas({ state, slotsMatrix, metrics, selectedCell, setSelectedCel
       <div className="label-canvas" style={{ padding: `${state.paddingVMm * pxPerMm}px ${metrics.effectivePaddingH * pxPerMm}px` }}>
         {state.showHeader && (
           <div className="label-header" style={{ height: state.headerHeightMm * pxPerMm }}>
-            <div className="header-main"><strong style={{ fontSize: state.boxNameFontSize * state.zoom }}>{state.boxName}</strong><span style={{ fontSize: state.locationFontSize * state.zoom }}>{state.location}</span></div>
-            <div className="header-id"><span style={{ fontSize: state.boxIdFontSize * state.zoom }}>{state.boxId}</span><small>{state.rows} × {state.columns} box</small></div>
+            <div className="header-main"><strong style={{ fontSize: state.boxNameFontSize }}>{state.boxName}</strong><span style={{ fontSize: state.locationFontSize }}>{state.location}</span></div>
+            <div className="header-id"><span style={{ fontSize: state.boxIdFontSize }}>{state.boxId}</span><small>{state.rows} × {state.columns} box</small></div>
           </div>
         )}
         <div className="grid-wrap" style={{ gap: `${gapVpx}px` }}>
@@ -641,8 +647,8 @@ function LabelCanvas({ state, slotsMatrix, metrics, selectedCell, setSelectedCel
         </div>
         {state.showFooter && (
           <div className="label-footer" style={{ height: state.footerHeightMm * pxPerMm }}>
-            <div className="footer-meta"><strong style={{ fontSize: state.ownerFontSize * state.zoom }}>{state.owner}</strong></div>
-            {state.printDate && <div className="footer-date"><span style={{ fontSize: state.printDateFontSize * state.zoom }}>Printed {state.printDate}</span></div>}
+            <div className="footer-meta"><strong style={{ fontSize: state.ownerFontSize }}>{state.owner}</strong></div>
+            {state.printDate && <div className="footer-date"><span style={{ fontSize: state.printDateFontSize }}>Printed {state.printDate}</span></div>}
             {state.showQr && <div className="qr" aria-label="QR code preview">{qr.map((on, i) => <i key={i} className={on ? 'on' : ''}/>)}</div>}
           </div>
         )}
