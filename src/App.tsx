@@ -20,6 +20,8 @@ type TemplateState = {
   boxId: string
   location: string
   owner: string
+  canvasWidthMm: number
+  canvasHeightMm: number
   rows: number
   columns: number
   paddingHMm: number
@@ -49,8 +51,29 @@ type TemplateState = {
   printDateFontSize: number
 }
 
-const A4_WIDTH_MM = 210
-const A4_HEIGHT_MM = 297
+type DimensionPreset = {
+  label: string
+  group: string
+  width: number
+  height: number
+}
+
+const DIMENSION_PRESETS: DimensionPreset[] = [
+  { group: 'Printer Paper', label: 'A3', width: 297, height: 420 },
+  { group: 'Printer Paper', label: 'A4', width: 210, height: 297 },
+  { group: 'Printer Paper', label: 'A5', width: 148, height: 210 },
+  { group: 'Printer Paper', label: 'US Letter', width: 215.9, height: 279.4 },
+  { group: 'Printer Paper', label: 'US Legal', width: 215.9, height: 355.6 },
+  { group: 'Printer Paper', label: 'Tabloid', width: 279.4, height: 431.8 },
+  { group: 'Label Sheets', label: 'Avery 5160 (Letter)', width: 215.9, height: 279.4 },
+  { group: 'Label Sheets', label: 'Avery 5163 (Letter)', width: 215.9, height: 279.4 },
+  { group: 'Label Sheets', label: 'Avery L7160 (A4)', width: 210, height: 297 },
+  { group: 'Label Sheets', label: 'Avery L7161 (A4)', width: 210, height: 297 },
+  { group: 'Lab Label Sheets', label: 'Cryo Label Sheet (Letter)', width: 215.9, height: 279.4 },
+  { group: 'Lab Label Sheets', label: 'Cryo Label Sheet (A4)', width: 210, height: 297 },
+  { group: 'Lab Label Sheets', label: 'Slide Label Sheet (Letter)', width: 215.9, height: 279.4 },
+  { group: 'Lab Label Sheets', label: 'Tube Label Sheet (A4)', width: 210, height: 297 },
+]
 
 const initialSlots: Slot[] = [
   { row: 0, col: 0, name: 'HCT116', info: 'P12 Control', date: '2026-07-20' },
@@ -70,6 +93,8 @@ const initialState: TemplateState = {
   boxId: 'BX-204',
   location: 'Freezer 2 / Rack 3 / Shelf B',
   owner: 'Cancer Biology Lab',
+  canvasWidthMm: 210,
+  canvasHeightMm: 297,
   rows: 6,
   columns: 8,
   paddingHMm: 5,
@@ -124,6 +149,8 @@ function makeQrPattern(seed: string) {
 }
 
 function computeGridMetrics(state: TemplateState) {
+  const canvasW = state.canvasWidthMm
+  const canvasH = state.canvasHeightMm
   const coordAllowanceX = state.showCoordinates ? 5 : 0
   const coordAllowanceY = state.showCoordinates ? 4 : 0
 
@@ -134,21 +161,21 @@ function computeGridMetrics(state: TemplateState) {
   if (state.lockedParam === 'cellWidth') {
     gapH = state.gridGapHMm
     paddingH = state.paddingHMm
-    const availW = A4_WIDTH_MM - paddingH * 2 - coordAllowanceX - gapH * (state.columns - 1)
+    const availW = canvasW - paddingH * 2 - coordAllowanceX - gapH * (state.columns - 1)
     cellWidth = availW / state.columns
   } else if (state.lockedParam === 'gapH') {
     cellWidth = state.cellWidthMm
     paddingH = state.paddingHMm
     gapH = state.columns > 1
-      ? (A4_WIDTH_MM - paddingH * 2 - coordAllowanceX - cellWidth * state.columns) / (state.columns - 1)
+      ? (canvasW - paddingH * 2 - coordAllowanceX - cellWidth * state.columns) / (state.columns - 1)
       : 0
   } else {
     cellWidth = state.cellWidthMm
     gapH = state.gridGapHMm
-    paddingH = (A4_WIDTH_MM - coordAllowanceX - cellWidth * state.columns - gapH * (state.columns - 1)) / 2
+    paddingH = (canvasW - coordAllowanceX - cellWidth * state.columns - gapH * (state.columns - 1)) / 2
   }
 
-  const availableHeight = A4_HEIGHT_MM - state.paddingVMm * 2
+  const availableHeight = canvasH - state.paddingVMm * 2
     - (state.showHeader ? state.headerHeightMm : 0)
     - (state.showFooter ? state.footerHeightMm : 0)
     - coordAllowanceY
@@ -267,11 +294,11 @@ function App() {
     const coordAllowanceX = state.showCoordinates ? 5 : 0
     if (state.lockedParam === 'gapH') {
       const newGap = state.columns > 1
-        ? (A4_WIDTH_MM - state.paddingHMm * 2 - coordAllowanceX - v * state.columns) / (state.columns - 1)
+        ? (state.canvasWidthMm - state.paddingHMm * 2 - coordAllowanceX - v * state.columns) / (state.columns - 1)
         : 0
       if (newGap < 0) return
     } else if (state.lockedParam === 'paddingH') {
-      const newPad = (A4_WIDTH_MM - coordAllowanceX - v * state.columns - state.gridGapHMm * (state.columns - 1)) / 2
+      const newPad = (state.canvasWidthMm - coordAllowanceX - v * state.columns - state.gridGapHMm * (state.columns - 1)) / 2
       if (newPad < 0) return
     }
     const oldHeight = metrics.cellWidth / state.cellAspectRatio
@@ -288,10 +315,10 @@ function App() {
   const handleGapHChange = (v: number) => {
     const coordAllowanceX = state.showCoordinates ? 5 : 0
     if (state.lockedParam === 'cellWidth') {
-      const newCellW = (A4_WIDTH_MM - state.paddingHMm * 2 - coordAllowanceX - v * (state.columns - 1)) / state.columns
+      const newCellW = (state.canvasWidthMm - state.paddingHMm * 2 - coordAllowanceX - v * (state.columns - 1)) / state.columns
       if (newCellW < 0) return
     } else if (state.lockedParam === 'paddingH') {
-      const newPad = (A4_WIDTH_MM - coordAllowanceX - state.cellWidthMm * state.columns - v * (state.columns - 1)) / 2
+      const newPad = (state.canvasWidthMm - coordAllowanceX - state.cellWidthMm * state.columns - v * (state.columns - 1)) / 2
       if (newPad < 0) return
     }
     update({ gridGapHMm: v })
@@ -300,11 +327,11 @@ function App() {
   const handlePadHChange = (v: number) => {
     const coordAllowanceX = state.showCoordinates ? 5 : 0
     if (state.lockedParam === 'cellWidth') {
-      const newCellW = (A4_WIDTH_MM - v * 2 - coordAllowanceX - state.gridGapHMm * (state.columns - 1)) / state.columns
+      const newCellW = (state.canvasWidthMm - v * 2 - coordAllowanceX - state.gridGapHMm * (state.columns - 1)) / state.columns
       if (newCellW < 0) return
     } else if (state.lockedParam === 'gapH') {
       const newGap = state.columns > 1
-        ? (A4_WIDTH_MM - v * 2 - coordAllowanceX - state.cellWidthMm * state.columns) / (state.columns - 1)
+        ? (state.canvasWidthMm - v * 2 - coordAllowanceX - state.cellWidthMm * state.columns) / (state.columns - 1)
         : 0
       if (newGap < 0) return
     }
@@ -320,6 +347,35 @@ function App() {
       paddingHMm: metrics.effectivePaddingH,
     })
   }
+
+  const handleCanvasWidthChange = (v: number) => {
+    if (v <= 0) return
+    update({ canvasWidthMm: v })
+  }
+
+  const handleCanvasHeightChange = (v: number) => {
+    if (v <= 0) return
+    update({ canvasHeightMm: v })
+  }
+
+  const handlePresetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const idx = Number(e.target.value)
+    if (isNaN(idx) || idx < 0) return
+    const preset = DIMENSION_PRESETS[idx]
+    if (preset) {
+      update({ canvasWidthMm: preset.width, canvasHeightMm: preset.height })
+    }
+  }
+
+  const activePresetIndex = DIMENSION_PRESETS.findIndex(
+    p => p.width === state.canvasWidthMm && p.height === state.canvasHeightMm
+  )
+
+  const presetGroups = DIMENSION_PRESETS.reduce<Record<string, { preset: DimensionPreset; index: number }[]>>((acc, p, i) => {
+    if (!acc[p.group]) acc[p.group] = []
+    acc[p.group].push({ preset: p, index: i })
+    return acc
+  }, {})
 
   return (
     <div className="app">
@@ -375,6 +431,26 @@ function App() {
 
           {activeTab === 'structure' && (
             <div className="tab-content">
+              <div className="subsection">
+                <h4 className="subsection-title">Canvas Size</h4>
+                <label className="field">
+                  <span>Preset</span>
+                  <select value={activePresetIndex >= 0 ? activePresetIndex : ''} onChange={handlePresetChange} className="preset-select">
+                    <option value="" disabled>Custom</option>
+                    {Object.entries(presetGroups).map(([group, items]) => (
+                      <optgroup key={group} label={group}>
+                        {items.map(({ preset, index }) => (
+                          <option key={index} value={index}>{preset.label} ({preset.width} x {preset.height} mm)</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </label>
+                <div className="two-col">
+                  <NumberField label="Width (mm)" value={state.canvasWidthMm} min={20} max={500} step={0.1} onChange={handleCanvasWidthChange}/>
+                  <NumberField label="Height (mm)" value={state.canvasHeightMm} min={20} max={600} step={0.1} onChange={handleCanvasHeightChange}/>
+                </div>
+              </div>
               <div className="three-col">
                 <NumberField label="Rows" value={state.rows} min={1} max={20} onChange={rows => update({ rows })}/>
                 <NumberField label="Columns" value={state.columns} min={1} max={20} onChange={columns => update({ columns })}/>
@@ -469,8 +545,8 @@ function LabelCanvas({ state, slotsMatrix, metrics, selectedCell, setSelectedCel
 }) {
   const qr = makeQrPattern(state.boxId)
   const pxPerMm = 3.78 * state.zoom
-  const canvasW = A4_WIDTH_MM * pxPerMm
-  const canvasH = A4_HEIGHT_MM * pxPerMm
+  const canvasW = state.canvasWidthMm * pxPerMm
+  const canvasH = state.canvasHeightMm * pxPerMm
   const cellWpx = metrics.cellWidth * pxPerMm
   const cellHpx = metrics.cellHeight * pxPerMm
   const gapHpx = metrics.effectiveGapH * pxPerMm
