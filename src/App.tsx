@@ -42,6 +42,11 @@ type TemplateState = {
   infoFontSize: number
   dateFontSize: number
   printDate: string
+  boxNameFontSize: number
+  boxIdFontSize: number
+  locationFontSize: number
+  ownerFontSize: number
+  printDateFontSize: number
 }
 
 const A4_WIDTH_MM = 210
@@ -87,6 +92,11 @@ const initialState: TemplateState = {
   infoFontSize: 6,
   dateFontSize: 6,
   printDate: new Date().toLocaleDateString(),
+  boxNameFontSize: 15,
+  boxIdFontSize: 10,
+  locationFontSize: 8,
+  ownerFontSize: 10,
+  printDateFontSize: 8,
 }
 
 function rowLabel(index: number) {
@@ -392,16 +402,31 @@ function App() {
                 <h4 className="subsection-title">Header</h4>
                 <Toggle label="Show header" checked={state.showHeader} onChange={showHeader => update({ showHeader })}/>
                 {state.showHeader && <NumberField label="Height" value={state.headerHeightMm} min={5} max={30} suffix="mm" onChange={headerHeightMm => update({ headerHeightMm })}/>}
-                <label className="field"><span>Box name</span><input value={state.boxName} onChange={e => update({ boxName: e.target.value })}/></label>
-                <label className="field"><span>Box ID</span><input value={state.boxId} onChange={e => update({ boxId: e.target.value })}/></label>
-                <label className="field"><span>Location</span><input value={state.location} onChange={e => update({ location: e.target.value })}/></label>
+                <div className="field-with-size">
+                  <label className="field"><span>Box name</span><input value={state.boxName} onChange={e => update({ boxName: e.target.value })}/></label>
+                  <label className="field range-field size-slider"><span>Size <em className="range-value">{state.boxNameFontSize}px</em></span><input type="range" min={6} max={24} step={0.5} value={state.boxNameFontSize} onChange={e => update({ boxNameFontSize: Number(e.target.value) })}/></label>
+                </div>
+                <div className="field-with-size">
+                  <label className="field"><span>Box ID</span><input value={state.boxId} onChange={e => update({ boxId: e.target.value })}/></label>
+                  <label className="field range-field size-slider"><span>Size <em className="range-value">{state.boxIdFontSize}px</em></span><input type="range" min={5} max={20} step={0.5} value={state.boxIdFontSize} onChange={e => update({ boxIdFontSize: Number(e.target.value) })}/></label>
+                </div>
+                <div className="field-with-size">
+                  <label className="field"><span>Location</span><input value={state.location} onChange={e => update({ location: e.target.value })}/></label>
+                  <label className="field range-field size-slider"><span>Size <em className="range-value">{state.locationFontSize}px</em></span><input type="range" min={4} max={16} step={0.5} value={state.locationFontSize} onChange={e => update({ locationFontSize: Number(e.target.value) })}/></label>
+                </div>
               </div>
               <div className="subsection">
                 <h4 className="subsection-title">Footer</h4>
                 <Toggle label="Show footer" checked={state.showFooter} onChange={showFooter => update({ showFooter })}/>
                 {state.showFooter && <NumberField label="Height" value={state.footerHeightMm} min={5} max={30} suffix="mm" onChange={footerHeightMm => update({ footerHeightMm })}/>}
-                <label className="field"><span>Owner</span><input value={state.owner} onChange={e => update({ owner: e.target.value })}/></label>
-                <label className="field"><span>Print date</span><input value={state.printDate} onChange={e => update({ printDate: e.target.value })}/></label>
+                <div className="field-with-size">
+                  <label className="field"><span>Owner</span><input value={state.owner} onChange={e => update({ owner: e.target.value })}/></label>
+                  <label className="field range-field size-slider"><span>Size <em className="range-value">{state.ownerFontSize}px</em></span><input type="range" min={5} max={20} step={0.5} value={state.ownerFontSize} onChange={e => update({ ownerFontSize: Number(e.target.value) })}/></label>
+                </div>
+                <div className="field-with-size">
+                  <label className="field"><span>Print date</span><input value={state.printDate} onChange={e => update({ printDate: e.target.value })}/></label>
+                  <label className="field range-field size-slider"><span>Size <em className="range-value">{state.printDateFontSize}px</em></span><input type="range" min={4} max={16} step={0.5} value={state.printDateFontSize} onChange={e => update({ printDateFontSize: Number(e.target.value) })}/></label>
+                </div>
                 <Toggle label="Box QR code" checked={state.showQr} onChange={showQr => update({ showQr })}/>
               </div>
 
@@ -456,8 +481,8 @@ function LabelCanvas({ state, slotsMatrix, metrics, selectedCell, setSelectedCel
       <div className="label-canvas" style={{ padding: `${state.paddingVMm * pxPerMm}px ${metrics.effectivePaddingH * pxPerMm}px` }}>
         {state.showHeader && (
           <div className="label-header" style={{ height: state.headerHeightMm * pxPerMm }}>
-            <div className="header-main"><strong>{state.boxName}</strong><span>{state.location}</span></div>
-            <div className="header-id"><span>{state.boxId}</span><small>{state.rows} × {state.columns} box</small></div>
+            <div className="header-main"><strong style={{ fontSize: state.boxNameFontSize * state.zoom }}>{state.boxName}</strong><span style={{ fontSize: state.locationFontSize * state.zoom }}>{state.location}</span></div>
+            <div className="header-id"><span style={{ fontSize: state.boxIdFontSize * state.zoom }}>{state.boxId}</span><small>{state.rows} × {state.columns} box</small></div>
           </div>
         )}
         <div className="grid-wrap" style={{ gap: `${gapVpx}px` }}>
@@ -498,8 +523,8 @@ function LabelCanvas({ state, slotsMatrix, metrics, selectedCell, setSelectedCel
         </div>
         {state.showFooter && (
           <div className="label-footer" style={{ height: state.footerHeightMm * pxPerMm }}>
-            <div className="footer-meta"><strong>{state.owner}</strong></div>
-            {state.printDate && <div className="footer-date"><span>Printed {state.printDate}</span></div>}
+            <div className="footer-meta"><strong style={{ fontSize: state.ownerFontSize * state.zoom }}>{state.owner}</strong></div>
+            {state.printDate && <div className="footer-date"><span style={{ fontSize: state.printDateFontSize * state.zoom }}>Printed {state.printDate}</span></div>}
             {state.showQr && <div className="qr" aria-label="QR code preview">{qr.map((on, i) => <i key={i} className={on ? 'on' : ''}/>)}</div>}
           </div>
         )}
