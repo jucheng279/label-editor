@@ -53,26 +53,17 @@ type TemplateState = {
 
 type DimensionPreset = {
   label: string
-  group: string
   width: number
   height: number
 }
 
 const DIMENSION_PRESETS: DimensionPreset[] = [
-  { group: 'Printer Paper', label: 'A3', width: 297, height: 420 },
-  { group: 'Printer Paper', label: 'A4', width: 210, height: 297 },
-  { group: 'Printer Paper', label: 'A5', width: 148, height: 210 },
-  { group: 'Printer Paper', label: 'US Letter', width: 215.9, height: 279.4 },
-  { group: 'Printer Paper', label: 'US Legal', width: 215.9, height: 355.6 },
-  { group: 'Printer Paper', label: 'Tabloid', width: 279.4, height: 431.8 },
-  { group: 'Label Sheets', label: 'Avery 5160 (Letter)', width: 215.9, height: 279.4 },
-  { group: 'Label Sheets', label: 'Avery 5163 (Letter)', width: 215.9, height: 279.4 },
-  { group: 'Label Sheets', label: 'Avery L7160 (A4)', width: 210, height: 297 },
-  { group: 'Label Sheets', label: 'Avery L7161 (A4)', width: 210, height: 297 },
-  { group: 'Lab Label Sheets', label: 'Cryo Label Sheet (Letter)', width: 215.9, height: 279.4 },
-  { group: 'Lab Label Sheets', label: 'Cryo Label Sheet (A4)', width: 210, height: 297 },
-  { group: 'Lab Label Sheets', label: 'Slide Label Sheet (Letter)', width: 215.9, height: 279.4 },
-  { group: 'Lab Label Sheets', label: 'Tube Label Sheet (A4)', width: 210, height: 297 },
+  { label: 'A3', width: 297, height: 420 },
+  { label: 'A4', width: 210, height: 297 },
+  { label: 'A5', width: 148, height: 210 },
+  { label: 'US Letter', width: 215.9, height: 279.4 },
+  { label: 'US Legal', width: 215.9, height: 355.6 },
+  { label: 'Tabloid', width: 279.4, height: 431.8 },
 ]
 
 const initialSlots: Slot[] = [
@@ -371,12 +362,6 @@ function App() {
     p => p.width === state.canvasWidthMm && p.height === state.canvasHeightMm
   )
 
-  const presetGroups = DIMENSION_PRESETS.reduce<Record<string, { preset: DimensionPreset; index: number }[]>>((acc, p, i) => {
-    if (!acc[p.group]) acc[p.group] = []
-    acc[p.group].push({ preset: p, index: i })
-    return acc
-  }, {})
-
   return (
     <div className="app">
       <header className="topbar no-print">
@@ -437,12 +422,8 @@ function App() {
                   <span>Preset</span>
                   <select value={activePresetIndex >= 0 ? activePresetIndex : ''} onChange={handlePresetChange} className="preset-select">
                     <option value="" disabled>Custom</option>
-                    {Object.entries(presetGroups).map(([group, items]) => (
-                      <optgroup key={group} label={group}>
-                        {items.map(({ preset, index }) => (
-                          <option key={index} value={index}>{preset.label} ({preset.width} x {preset.height} mm)</option>
-                        ))}
-                      </optgroup>
+                    {DIMENSION_PRESETS.map((p, i) => (
+                      <option key={i} value={i}>{p.label} ({p.width} x {p.height} mm)</option>
                     ))}
                   </select>
                 </label>
