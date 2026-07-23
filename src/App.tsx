@@ -278,7 +278,7 @@ function App() {
 
   const handleAspectRatioChange = (v: number) => {
     const clamped = Math.max(metrics.minRatio, v)
-    update({ cellAspectRatio: Math.round(clamped * 100) / 100 })
+    update({ cellAspectRatio: clamped })
   }
 
   const handleCellWidthChange = (v: number) => {
@@ -294,13 +294,13 @@ function App() {
     }
     const oldHeight = metrics.cellWidth / state.cellAspectRatio
     const newRatio = v / oldHeight
-    update({ cellWidthMm: v, cellAspectRatio: Math.round(Math.max(metrics.minRatio, newRatio) * 100) / 100 })
+    update({ cellWidthMm: v, cellAspectRatio: Math.max(metrics.minRatio, newRatio) })
   }
 
   const handleCellHeightChange = (v: number) => {
     if (v <= 0) return
     const newRatio = metrics.cellWidth / v
-    update({ cellAspectRatio: Math.round(Math.max(metrics.minRatio, newRatio) * 100) / 100 })
+    update({ cellAspectRatio: Math.max(metrics.minRatio, newRatio) })
   }
 
   const handleGapHChange = (v: number) => {
@@ -435,7 +435,7 @@ function App() {
               <div className="three-col">
                 <NumberField label="Rows" value={state.rows} min={1} max={20} onChange={rows => update({ rows })}/>
                 <NumberField label="Columns" value={state.columns} min={1} max={20} onChange={columns => update({ columns })}/>
-                <NumberField label="Ratio" value={state.cellAspectRatio} min={Math.round(metrics.minRatio * 100) / 100} max={5} step={0.05} onChange={handleAspectRatioChange}/>
+                <NumberField label="Ratio" value={Math.round(state.cellAspectRatio * 100) / 100} min={Math.round(metrics.minRatio * 100) / 100} max={5} step={0.05} onChange={handleAspectRatioChange}/>
               </div>
               {metrics.clamped && <div className="clamp-notice">Ratio limited to fit page height</div>}
               <div className="three-col">
