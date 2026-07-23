@@ -39,6 +39,8 @@ type TemplateState = {
   showGridLines: boolean
   lockedParam: LockedParam
   zoom: number
+  panX: number
+  panY: number
   slots: Slot[]
   nameFontSize: number
   infoFontSize: number
@@ -109,6 +111,8 @@ const initialState: TemplateState = {
   showGridLines: true,
   lockedParam: 'cellWidth',
   zoom: 0.85,
+  panX: 0,
+  panY: 0,
   slots: initialSlots,
   nameFontSize: 8,
   infoFontSize: 6,
@@ -292,29 +296,46 @@ function App() {
     const el = canvasStageRef.current
     if (!el) return
     const handler = (e: WheelEvent) => {
-      if (!e.ctrlKey && !e.metaKey) return
       e.preventDefault()
-      const delta = -e.deltaY * 0.005
       const rect = el.getBoundingClientRect()
       const cursorX = e.clientX - rect.left
       const cursorY = e.clientY - rect.top
-      const contentX = el.scrollLeft + cursorX
-      const contentY = el.scrollTop + cursorY
-      setState(prev => {
-        const newZoom = Math.min(1.5, Math.max(0.4, prev.zoom + delta))
-        if (newZoom === prev.zoom) return prev
-        const scale = newZoom / prev.zoom
-        requestAnimationFrame(() => {
-          el.scrollLeft = contentX * scale - cursorX
-          el.scrollTop = contentY * scale - cursorY
+
+      if (e.ctrlKey || e.metaKey) {
+        const delta = -e.deltaY * 0.005
+        setState(prev => {
+          const newZoom = Math.min(1.5, Math.max(0.4, prev.zoom + delta))
+          if (newZoom === prev.zoom) return prev
+          const pointX = (cursorX - prev.panX) / prev.zoom
+          const pointY = (cursorY - prev.panY) / prev.zoom
+          const newPanX = cursorX - pointX * newZoom
+          const newPanY = cursorY - pointY * newZoom
+          setHistory(h => [...h.slice(-39), prev])
+          setFuture([])
+          return { ...prev, zoom: newZoom, panX: newPanX, panY: newPanY }
         })
-        setHistory(h => [...h.slice(-39), prev])
-        setFuture([])
-        return { ...prev, zoom: newZoom }
-      })
+      } else {
+        setState(prev => {
+          const newPanX = prev.panX - e.deltaX
+          const newPanY = prev.panY - e.deltaY
+          return { ...prev, panX: newPanX, panY: newPanY }
+        })
+      }
     }
     el.addEventListener('wheel', handler, { passive: false })
     return () => el.removeEventListener('wheel', handler)
+  }, [])
+
+  useEffect(() => {
+    const el = canvasStageRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const contentW = state.canvasWidthMm * 3.78
+    const contentH = state.canvasHeightMm * 3.78
+    const panX = (rect.width - contentW * state.zoom) / 2
+    const panY = (rect.height - contentH * state.zoom) / 2
+    setState(prev => ({ ...prev, panX, panY }))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const print = () => { window.print() }
@@ -430,28 +451,44 @@ function App() {
         <main className="canvas-area">
 
           <div className="canvas-stage" ref={canvasStageRef}>
-            <div className="zoom-wrapper" style={{
-              width: state.canvasWidthMm * 3.78 * state.zoom,
-              height: state.canvasHeightMm * 3.78 * state.zoom,
+            <div style={{
+              transform: `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`,
+              transformOrigin: '0 0',
             }}>
-              <div style={{ transform: `scale(${state.zoom})`, transformOrigin: '0 0' }}>
-                <LabelCanvas
-                  state={state}
-                  slotsMatrix={slotsMatrix}
-                  metrics={metrics}
-                  selectedCell={selectedCell}
-                  setSelectedCell={setSelectedCell}
-                />
-              </div>
+              <LabelCanvas
+                state={state}
+                slotsMatrix={slotsMatrix}
+                metrics={metrics}
+                selectedCell={selectedCell}
+                setSelectedCell={setSelectedCell}
+              />
             </div>
           </div>
 
           <div className="statusbar no-print">
             <div>{state.slots.filter(s => s.row < state.rows && s.col < state.columns).length} occupied · {state.rows * state.columns - state.slots.filter(s => s.row < state.rows && s.col < state.columns).length} empty</div>
             <div className="zoom-control">
-              <button onClick={() => update({ zoom: Math.max(.4, state.zoom - .1) })}><ZoomOut size={16}/></button>
+              <button onClick={() => {
+                const el = canvasStageRef.current
+                if (!el) return
+                const rect = el.getBoundingClientRect()
+                const cx = rect.width / 2, cy = rect.height / 2
+                const newZoom = Math.max(.4, state.zoom - .1)
+                const pointX = (cx - state.panX) / state.zoom
+                const pointY = (cy - state.panY) / state.zoom
+                update({ zoom: newZoom, panX: cx - pointX * newZoom, panY: cy - pointY * newZoom })
+              }}><ZoomOut size={16}/></button>
               <span>{Math.round(state.zoom * 100)}%</span>
-              <button onClick={() => update({ zoom: Math.min(1.5, state.zoom + .1) })}><ZoomIn size={16}/></button>
+              <button onClick={() => {
+                const el = canvasStageRef.current
+                if (!el) return
+                const rect = el.getBoundingClientRect()
+                const cx = rect.width / 2, cy = rect.height / 2
+                const newZoom = Math.min(1.5, state.zoom + .1)
+                const pointX = (cx - state.panX) / state.zoom
+                const pointY = (cy - state.panY) / state.zoom
+                update({ zoom: newZoom, panX: cx - pointX * newZoom, panY: cy - pointY * newZoom })
+              }}><ZoomIn size={16}/></button>
             </div>
           </div>
         </main>
