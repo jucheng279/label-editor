@@ -53,6 +53,7 @@ type TemplateState = {
   boldDate: boolean
   showDataMatrix: boolean
   dataMatrixSizeMm: number
+  cellTextGapPx: number
   printDate: string
   boxNameFontSize: number
   boxIdFontSize: number
@@ -127,6 +128,7 @@ const initialState: TemplateState = {
   boldDate: false,
   showDataMatrix: false,
   dataMatrixSizeMm: 3,
+  cellTextGapPx: 1,
   printDate: new Date().toLocaleDateString(),
   boxNameFontSize: 15,
   boxIdFontSize: 10,
@@ -607,9 +609,14 @@ function App() {
                 <span className="grid-text-label">Matrix</span>
                 <Toggle label="" checked={state.showDataMatrix} onChange={showDataMatrix => update({ showDataMatrix })}/>
                 {state.showDataMatrix && <>
-                  <input type="range" className="grid-text-slider" min={1.5} max={10} step={0.5} value={state.dataMatrixSizeMm} onChange={e => update({ dataMatrixSizeMm: Number(e.target.value) })}/>
+                  <input type="range" className="grid-text-slider" min={1.5} max={15} step={0.5} value={state.dataMatrixSizeMm} onChange={e => update({ dataMatrixSizeMm: Number(e.target.value) })}/>
                   <em className="range-value">{state.dataMatrixSizeMm}mm</em>
                 </>}
+              </div>
+              <div className="grid-text-row">
+                <span className="grid-text-label">Line Gap</span>
+                <input type="range" className="grid-text-slider" min={0} max={6} step={0.5} value={state.cellTextGapPx} onChange={e => update({ cellTextGapPx: Number(e.target.value) })}/>
+                <em className="range-value">{state.cellTextGapPx}px</em>
               </div>
               <CellEditor state={state} selectedCell={selectedCell} updateSlot={updateSlot} onClose={() => setSelectedCell(null)}/>
             </div>
@@ -710,7 +717,7 @@ function LabelCanvas({ state, slotsMatrix, metrics, selectedCell, setSelectedCel
                     >
                       {slot ? (
                         <div className={`cell-content ${state.showDataMatrix ? 'cell-with-matrix' : ''}`}>
-                          <div className="cell-text">
+                          <div className="cell-text" style={{ gap: state.cellTextGapPx + 'px' }}>
                             {state.showName && <strong title={slot.name} style={{ fontSize: state.nameFontSize + 'px', fontWeight: state.boldName ? 700 : 400 }}>{slot.name}</strong>}
                             {state.showInfo && <span title={slot.info} style={{ fontSize: state.infoFontSize + 'px', fontWeight: state.boldInfo ? 700 : 400 }}>{slot.info}</span>}
                             {state.showDate && <small style={{ fontSize: state.dateFontSize + 'px', fontWeight: state.boldDate ? 700 : 400 }}>{slot.date}</small>}
